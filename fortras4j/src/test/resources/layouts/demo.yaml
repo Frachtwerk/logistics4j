@@ -1,0 +1,55 @@
+# A small invented layout exercising every engine feature; not a real FORTRAS release.
+id: demo
+format: DEMO
+release: "1"
+detect: "^HDR001"
+maxLineLength: 80
+passthrough: "^X99"
+codelists:
+  colour:
+    codes: { RED: Rot, GRN: Grün }
+  size:
+    strict: false
+    codes: ["S", "M", "L"]
+records:
+  HDR:
+    fields:
+      - { name: version, start: 4, end: 6, default: "001" }
+      - { name: created, start: 7, end: 14, type: date, required: true }
+  ORD:
+    fields:
+      - { name: orderNo, start: 4, end: 6, type: integer }
+      - { name: colour, start: 7, end: 9, type: code, codelist: colour }
+      - { name: weight, start: 10, end: 15, type: decimal, scale: 2 }
+      - { name: express, start: 16, end: 16, type: boolean }
+  ITM:
+    fields:
+      - { name: orderNo, start: 4, end: 6, type: integer }
+      - { name: size, start: 7, end: 7, type: code, codelist: size }
+      - repeat: notes
+        start: 8
+        count: 3
+        stride: 6
+        fields:
+          - { name: key, start: 1, end: 2 }
+          - { name: text, start: 3, end: 6 }
+  MSG:
+    fields:
+      - { name: text, start: 4, end: 20 }
+  END:
+    fields:
+      - { name: count, start: 4, end: 7, type: integer }
+structure:
+  - { record: HDR, as: header }
+  - choice: entries
+    occurs: "1..*"
+    options:
+      - group: orders
+        key: orderNo
+        constraints:
+          - { unique: size, record: ITM }
+        children:
+          - { record: ORD, as: order }
+          - { record: ITM, occurs: "0..3", as: items }
+      - { record: MSG, as: message }
+  - { record: END, as: trailer }
