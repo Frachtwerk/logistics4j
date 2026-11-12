@@ -10,12 +10,13 @@
 
     <name>Logistics4J</name>
     <description>Readers and writers for logistics file formats: FORTRAS and other fixed-width files driven by layout
-        configuration, plus the AIS scan format
+        configuration, plus AIS scan and XML status formats
     </description>
 
     <modules>
         <module>fortras4j</module>
         <module>ais-scan4j</module>
+        <module>xml-status4j</module>
     </modules>
 
     <properties>

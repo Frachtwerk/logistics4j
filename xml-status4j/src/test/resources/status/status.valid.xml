@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FAR_DATA>
+    <FAHRT>
+        <SDG>
+            <SDG_HEAD>
+                <SDG_UEAR>N</SDG_UEAR>
+                <SDG_LAUID>ZU</SDG_LAUID>
+                <SDG_SDID>GEX111222333</SDG_SDID>
+                <SDG_IDABK>12345678901234567890</SDG_IDABK>
+                <SDG_TYP>G</SDG_TYP>
+                <SDG_ABKO>910123</SDG_ABKO>
+                <SDG_EMKO>Dummy GmbH, D-12345 Musterstadt</SDG_EMKO>
+                <SDG_ADAT>20240101</SDG_ADAT>
+                <SDG_KOOP>KOP</SDG_KOOP>
+                <SDG_STOP>1</SDG_STOP>
+                <VER>
+                    <NAM1>Versender GmbH</NAM1>
+                    <NAM2></NAM2>
+                    <STHS>Musterstraße 1</STHS>
+                    <LAND>DE</LAND>
+                    <PLZ>12345</PLZ>
+                    <ORT>Musterstadt</ORT>
+                </VER>
+                <EMP>
+                    <NAM1>Empfänger GbR</NAM1>
+                    <NAM2>Empfänger GbR</NAM2>
+                    <STHS>Hauptstraße 100</STHS>
+                    <LAND>De</LAND>
+                    <PLZ>67890</PLZ>
+                    <ORT>Musterhausen</ORT>
+                </EMP>
+                <SSU>
+                    <SSU_ANZA>2</SSU_ANZA>
+                    <SSU_GEWI>212</SSU_GEWI>
+                </SSU>
+                <STA>
+                    <STA_CODE>300</STA_CODE>
+                    <STA_TEXT></STA_TEXT>
+                    <STA_QUIG>MIO</STA_QUIG>
+                    <STA_QUID>20241014</STA_QUID>
+                    <STA_QUIZ>131133</STA_QUIZ>
+                    <STA_UNTE/>
+                    <STA_UNTE_FORM/>
+                    <STA_LAT>40.1234567890</STA_LAT>
+                    <STA_LNG>16.1234567890</STA_LNG>
+                </STA>
+            </SDG_HEAD>
+            <POSI>
+                <POS_ANZA>1</POS_ANZA>
+                <POS_ART>FP</POS_ART>
+                <POS_ZENR/>
+                <POS_BEZE/>
+                <POS_GEWI>151</POS_GEWI>
+                <POS_GGVS/>
+                <BCD>
+                    <BCD_ART>NVE</BCD_ART>
+                    <BCD_NUMM>1234568901234567890</BCD_NUMM>
+                    <BCD_STAT>001</BCD_STAT>
+                    <BCD_ZUST>001</BCD_ZUST>
+                    <BCD_TSST>202409161312</BCD_TSST>
+                    <BCD_TEXT/>
+                </BCD>
+            </POSI>
+            <POSI>
+                <POS_ANZA>1</POS_ANZA>
+                <POS_ART>FP</POS_ART>
+                <POS_ZENR/>
+                <POS_BEZE/>
+                <POS_GEWI>61</POS_GEWI>
+                <POS_GGVS/>
+                <BCD>
+                    <BCD_ART>NVE</BCD_ART>
+                    <BCD_NUMM>1234568901234567890</BCD_NUMM>
+                    <BCD_STAT>001</BCD_STAT>
+                    <BCD_ZUST>001</BCD_ZUST>
+                    <BCD_TSST>202409161312</BCD_TSST>
+                    <BCD_TEXT/>
+                </BCD>
+            </POSI>
+        </SDG>
+    </FAHRT>
+</FAR_DATA>
