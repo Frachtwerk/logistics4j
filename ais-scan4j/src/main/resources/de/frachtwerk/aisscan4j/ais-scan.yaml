@@ -1,0 +1,49 @@
+# AIS scan file: one fixed-width line per file, no record prefix.
+# Not a FORTRAS format; it is read with the fortras4j engine like any fixed-width layout.
+# Layout taken from the previous implementation (AisStatusExtractor). The status codes allowed
+# per scan type are checked in AisScans, as they depend on another field.
+
+id: ais-scan
+format: AIS
+release: "100"
+description: AIS-Scan (Status), eine Zeile je Datei
+detect: "^\\d{3}(FBS|HES|LBH|HBS|FES|LBD)"
+maxLineLength: 178
+
+codelists:
+  scanart:
+    codes:
+      FBS: Fernverkehrsbeladescannung
+      FES: Fernverkehrsentladescannung
+      LBD: Lagerbestand Depot
+      HES:
+      HBS:
+      LBH:
+  hub:
+    strict: false
+    codes:
+      ZUB: Zentral-Hub
+      MUB: Zentral-Hub II
+      NUB: Nord-Hub
+      SUB: Süd-Hub
+      WUB: West-Hub
+
+records:
+  AIS:
+    prefix: ""
+    fields:
+      - { name: version, start: 1, end: 3, type: integer, null: blanks }
+      - { name: scanart, start: 4, end: 6, type: code, codelist: scanart, required: true }
+      - { name: relation, start: 7, end: 9 }
+      - { name: hub, start: 10, end: 12, type: code, codelist: hub }
+      - { name: fahrzeugNummer, start: 13, end: 14, type: integer, null: blanks }
+      - { name: barcode, start: 15, end: 34, required: true }
+      # empty for tour statuses
+      - { name: verursacher, start: 35, end: 69 }
+      - { name: statusCode, start: 70, end: 72, type: integer, null: blanks }
+      # ddMMyyyyHHmmss and hundredths of a second
+      - { name: zeitstempel, start: 73, end: 88, required: true }
+      - { name: zusatztext, start: 89, end: 178 }
+
+structure:
+  - { record: AIS, as: scan }
