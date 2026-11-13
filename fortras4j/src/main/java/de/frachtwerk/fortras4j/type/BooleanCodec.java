@@ -83,7 +83,7 @@ final class BooleanCodec implements FieldCodec {
     if (!(coerce(value) instanceof Boolean b)) {
       return layout.empty(length);
     }
-    return layout.fit(b ? trueCodes.getFirst() : falseCodes.getFirst(), length);
+    return layout.fit(b.booleanValue() ? trueCodes.getFirst() : falseCodes.getFirst(), length);
   }
 
   @Override
