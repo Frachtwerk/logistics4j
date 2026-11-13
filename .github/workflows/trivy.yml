@@ -44,7 +44,8 @@ jobs:
           cache: 'maven'
 
       - name: Pre-populate Maven repository
-        run: mvn -B -ntp dependency:resolve
+        # package instead of dependency:resolve, so the modules resolve each other from the reactor
+        run: mvn -B -ntp -DskipTests package
 
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
