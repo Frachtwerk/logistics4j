@@ -68,7 +68,7 @@ public final class XmlStatusConfig {
 
   /** How line breaks inside text values are read. */
   public enum LineBreaks {
-    /** Remove them and trim the value, as wrapped values are joined. */
+    /** Remove them and trim the value. */
     STRIP,
     /** Keep the value as it is. */
     KEEP,
@@ -288,11 +288,7 @@ public final class XmlStatusConfig {
         + "]";
   }
 
-  /**
-   * The declaration for a charset. It names the charset by its canonical Java name, which for
-   * common charsets is the IANA name ({@code UTF-8}, {@code IBM850}, {@code windows-1252}). For
-   * ISO-8859-1 it keeps the spelling of 0.1.0, {@value XmlStatusFormat#DECLARATION}.
-   */
+  /** The declaration for a charset, see {@link Builder#automaticDeclaration()}. */
   static String automaticDeclaration(Charset encoding) {
     if (encoding.equals(StandardCharsets.ISO_8859_1)) {
       return XmlStatusFormat.DECLARATION;
@@ -319,10 +315,7 @@ public final class XmlStatusConfig {
 
     private Builder() {}
 
-    /**
-     * Charset of the file. Unless {@link #declaration(String)} or {@link #noDeclaration()} is used,
-     * the declaration names this charset, see {@link #automaticDeclaration()}.
-     */
+    /** Charset of the file, named in the declaration unless another one is configured. */
     public Builder encoding(Charset encoding) {
       this.encoding = Objects.requireNonNull(encoding, KEY_ENCODING);
       return this;
@@ -336,9 +329,9 @@ public final class XmlStatusConfig {
     }
 
     /**
-     * Derives the declaration from the encoding (default). The encoding is named by its canonical
-     * Java name, e.g. {@code UTF-8}, {@code IBM850} or {@code windows-1252}; ISO-8859-1 keeps the
-     * declaration of 0.1.0, {@value XmlStatusFormat#DECLARATION}.
+     * Derives the declaration from the encoding (default), named by its canonical Java name, e.g.
+     * {@code UTF-8}, {@code IBM850} or {@code windows-1252}. ISO-8859-1 keeps the declaration of
+     * 0.1.0, {@value XmlStatusFormat#DECLARATION}.
      */
     public Builder automaticDeclaration() {
       this.declaration = null;
