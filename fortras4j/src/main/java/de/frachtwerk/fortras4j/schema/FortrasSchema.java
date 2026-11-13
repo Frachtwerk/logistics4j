@@ -19,6 +19,7 @@
 
 package de.frachtwerk.fortras4j.schema;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ public final class FortrasSchema {
   private final List<RecordDefinition> recordsByPrefixLength;
   private final Map<String, CodeList> codeLists;
   private final StructureNode.GroupNode root;
+  private final Map<String, ValueRule> rules;
 
   FortrasSchema(
       String id,
@@ -52,7 +54,8 @@ public final class FortrasSchema {
       Pattern passthrough,
       Map<String, RecordDefinition> records,
       Map<String, CodeList> codeLists,
-      StructureNode.GroupNode root) {
+      StructureNode.GroupNode root,
+      Map<String, ValueRule> rules) {
     this.id = id;
     this.format = format;
     this.release = release;
@@ -68,6 +71,7 @@ public final class FortrasSchema {
             .toList();
     this.codeLists = Map.copyOf(codeLists);
     this.root = root;
+    this.rules = Collections.unmodifiableMap(new LinkedHashMap<>(rules));
   }
 
   public String id() {
@@ -131,6 +135,20 @@ public final class FortrasSchema {
 
   public CodeList codeList(String name) {
     return codeLists.get(name);
+  }
+
+  /** All value rules, by name, in layout order. */
+  public Map<String, ValueRule> rules() {
+    return rules;
+  }
+
+  public ValueRule rule(String name) {
+    return rules.get(name);
+  }
+
+  /** The value rules of one record type, in layout order. */
+  public List<ValueRule> rules(String recordId) {
+    return rules.values().stream().filter(r -> r.recordId().equals(recordId)).toList();
   }
 
   /** The whole file as a group that occurs exactly once. */
