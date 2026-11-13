@@ -39,8 +39,8 @@ import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.dataformat.xml.XmlMapper;
 
 /**
- * Reads and writes XML status files with a {@link XmlStatusConfig}. Immutable and thread-safe, so
- * one instance per configuration can be created once and shared, e.g. one per charset:
+ * Reads and writes XML status files with a {@link XmlStatusConfig}. Immutable and thread-safe; one
+ * instance per configuration can be shared:
  *
  * <pre>{@code
  * XmlStatusCodec utf8 =
@@ -148,8 +148,8 @@ public final class XmlStatusCodec {
   }
 
   /**
-   * The document as lines: the declaration (unless configured without one) and the document,
-   * indented or in one line. The caller encodes them in the configured encoding.
+   * The declaration, if any, and the document as lines; the caller encodes them in the configured
+   * encoding.
    *
    * @throws XmlStatusException if the object cannot be serialized
    */
