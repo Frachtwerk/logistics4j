@@ -222,6 +222,35 @@ eigenes Layout mit der Id `ais-scan` ändert beides: `AisScans.of(schemas)`.
 wird eine `DOCTYPE`-Deklaration ignoriert und Zeilenumbrüche in Textwerten werden entfernt;
 Fehler kommen als `XmlStatusException`.
 
+Andere Einstellungen gibt `XmlStatusConfig` vor, per Builder oder als YAML-Datei; `XmlStatusCodec`
+liest und schreibt damit. Konfiguration und Codec sind unveränderlich und threadsicher, eine Instanz
+je Konfiguration (z. B. je Zeichensatz) kann also einmal erzeugt und geteilt werden:
+
+```java
+XmlStatusCodec utf8 =
+    XmlStatusCodec.of(XmlStatusConfig.builder().encoding(StandardCharsets.UTF_8).build());
+List<String> lines = utf8.write(fahrDaten); // <?xml version="1.0" encoding="UTF-8"?>
+FahrDaten read = XmlStatusCodec.of(XmlStatusConfig.load(Path.of("status.yaml"))).read(lines);
+```
+
+```yaml
+encoding: UTF-8           # Zeichensatz der Datei, Standard ISO-8859-1
+declaration: auto         # auto (aus dem Zeichensatz), none oder die Deklaration selbst
+indent: true              # eingerückt (Standard) oder kompakt in einer Zeile
+lineBreaks: strip         # Zeilenumbrüche in Textwerten: strip (Standard), keep oder space
+doctype: ignore           # DOCTYPE beim Lesen: ignore (Standard) oder reject
+rootElement: FAR_DATA     # Name des Wurzelelements
+elements:                 # Elementnamen je <Klasse>.<Property> des Modells
+  Fahrt.sendungsdaten: SDG
+```
+
+Alle Schlüssel sind optional, unbekannte Schlüssel und ungültige Werte sind Fehler
+(`XmlStatusConfigException` mit allen Fehlern). Die Deklaration nennt den Zeichensatz mit seinem
+kanonischen Java-Namen, der für die üblichen Zeichensätze der IANA-Name ist (`UTF-8`, `IBM850`,
+`windows-1252`); nur ISO-8859-1 behält die Schreibweise `iso-8859-1` der Version 0.1.0. `write`
+liefert weiter Zeilen, die der Aufrufer im Zeichensatz kodiert; `read(InputStream)` und
+`write(fahrDaten, OutputStream)` nutzen den konfigurierten Zeichensatz (Zeilenende CR LF).
+
 ## Build
 
 ```
