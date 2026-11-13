@@ -87,6 +87,15 @@ class XmlStatusFormatTest {
     assertThat(XmlStatusFormat.write(XmlStatusFormat.read(written))).isEqualTo(written);
   }
 
+  @Test
+  void writesTheSameAsTheFirstRelease() throws Exception {
+    // status.written.xml is the output of 0.1.0 for status.valid.xml
+    List<String> written =
+        XmlStatusFormat.write(XmlStatusFormat.read(lines("status/status.valid.xml")));
+
+    assertThat(written).isEqualTo(lines("status/status.written.xml"));
+  }
+
   private static List<String> lines(String resource) throws IOException, URISyntaxException {
     Path path = Path.of(XmlStatusFormatTest.class.getClassLoader().getResource(resource).toURI());
     return Files.readAllLines(path, StandardCharsets.ISO_8859_1);
