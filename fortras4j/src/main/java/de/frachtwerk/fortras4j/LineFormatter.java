@@ -36,11 +36,10 @@ final class LineFormatter {
 
   private LineFormatter() {}
 
-  static String format(
-      FortrasSchema schema, Record record, int lineNumber, List<Problem> problems) {
-    RecordDefinition definition = record.definition();
-    String raw = record.raw();
-    if (definition == null || (raw != null && !record.isModified())) {
+  static String format(FortrasSchema schema, Record rec, int lineNumber, List<Problem> problems) {
+    RecordDefinition definition = rec.definition();
+    String raw = rec.raw();
+    if (definition == null || (raw != null && !rec.isModified())) {
       return raw;
     }
 
@@ -50,10 +49,10 @@ final class LineFormatter {
       line.replace(0, definition.prefix().length(), definition.prefix());
     }
     for (FieldElement element : definition.elements()) {
-      if (raw != null && !record.isModified(element.name())) {
+      if (raw != null && !rec.isModified(element.name())) {
         continue;
       }
-      Object value = record.values().get(element.name());
+      Object value = rec.values().get(element.name());
       switch (element) {
         case FieldDefinition field ->
             put(line, field, field.start(), value, definition, field.name(), lineNumber, problems);

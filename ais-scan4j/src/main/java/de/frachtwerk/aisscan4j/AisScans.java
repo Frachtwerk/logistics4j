@@ -109,10 +109,10 @@ public final class AisScans {
   public AisReadResult read(String line) {
     FortrasDocument document = reader.read(List.of(line), schema);
     List<Problem> problems = new ArrayList<>(document.problems());
-    Record record = document.records(RECORD).getFirst();
+    Record rec = document.records(RECORD).getFirst();
 
     LocalDateTime timestamp = null;
-    String text = record.getString("zeitstempel");
+    String text = rec.getString("zeitstempel");
     if (text != null) {
       try {
         timestamp = LocalDateTime.parse(text, TIMESTAMP);
@@ -126,8 +126,8 @@ public final class AisScans {
       }
     }
 
-    String scanType = hasError(problems, "scanart") ? null : record.getString("scanart");
-    Integer statusCode = hasError(problems, "statusCode") ? null : record.getInt("statusCode");
+    String scanType = hasError(problems, "scanart") ? null : rec.getString("scanart");
+    Integer statusCode = hasError(problems, "statusCode") ? null : rec.getInt("statusCode");
     if (scanType != null
         && statusCode != null
         && !allowedStatusCodes(scanType).contains(statusCode)) {
@@ -141,16 +141,16 @@ public final class AisScans {
 
     AisScan scan =
         new AisScan(
-            hasError(problems, "version") ? null : record.getInt("version"),
+            hasError(problems, "version") ? null : rec.getInt("version"),
             scanType,
-            record.getString("relation"),
-            record.getString("hub"),
-            hasError(problems, "fahrzeugNummer") ? null : record.getInt("fahrzeugNummer"),
-            record.getString("barcode"),
-            record.getString("verursacher"),
+            rec.getString("relation"),
+            rec.getString("hub"),
+            hasError(problems, "fahrzeugNummer") ? null : rec.getInt("fahrzeugNummer"),
+            rec.getString("barcode"),
+            rec.getString("verursacher"),
             statusCode,
             timestamp,
-            record.getString("zusatztext"));
+            rec.getString("zusatztext"));
     return new AisReadResult(scan, problems, line);
   }
 
@@ -160,19 +160,19 @@ public final class AisScans {
    * @throws FortrasException if a value does not fit the layout, e.g. an unknown scan type
    */
   public String write(AisScan scan) {
-    Record record = Record.create(schema, RECORD);
-    record.set("version", scan.version());
-    record.set("scanart", scan.scanType());
-    record.set("relation", scan.relation());
-    record.set("hub", scan.hub());
-    record.set("fahrzeugNummer", scan.vehicleNumber());
-    record.set("barcode", scan.barcode());
-    record.set("verursacher", scan.issuer());
-    record.set("statusCode", scan.statusCode());
-    record.set("zeitstempel", scan.timestamp() == null ? null : scan.timestamp().format(TIMESTAMP));
-    record.set("zusatztext", scan.additionalText());
+    Record rec = Record.create(schema, RECORD);
+    rec.set("version", scan.version());
+    rec.set("scanart", scan.scanType());
+    rec.set("relation", scan.relation());
+    rec.set("hub", scan.hub());
+    rec.set("fahrzeugNummer", scan.vehicleNumber());
+    rec.set("barcode", scan.barcode());
+    rec.set("verursacher", scan.issuer());
+    rec.set("statusCode", scan.statusCode());
+    rec.set("zeitstempel", scan.timestamp() == null ? null : scan.timestamp().format(TIMESTAMP));
+    rec.set("zusatztext", scan.additionalText());
 
-    WriteResult result = writer.write(schema, List.of(record));
+    WriteResult result = writer.write(schema, List.of(rec));
     if (!result.isValid()) {
       throw new FortrasException("cannot write AIS scan", result.problems());
     }

@@ -92,11 +92,11 @@ final class StructureMatcher {
     Group root = new Group(rootNode);
     matchBody(rootNode, root);
     while (position < records.size()) {
-      Record record = records.get(position++);
-      root.add(record);
-      if (record.isKnown()) {
-        record.structure(null);
-        unexpected(record);
+      Record rec = records.get(position++);
+      root.add(rec);
+      if (rec.isKnown()) {
+        rec.structure(null);
+        unexpected(rec);
       }
     }
     return root;
@@ -154,10 +154,10 @@ final class StructureMatcher {
   private void matchOnce(StructureNode node, Group parent) {
     switch (node) {
       case RecordRef ref -> {
-        Record record = records.get(position++);
-        record.structure(ref);
-        bindKeys(record);
-        parent.add(record);
+        Record rec = records.get(position++);
+        rec.structure(ref);
+        bindKeys(rec);
+        parent.add(rec);
       }
       case GroupNode groupNode -> {
         Group group = new Group(groupNode);
@@ -233,45 +233,45 @@ final class StructureMatcher {
     return position < records.size() ? records.get(position) : null;
   }
 
-  private boolean canStart(StructureNode node, Record record) {
-    return first(node).contains(record.id()) && keyCompatible(record);
+  private boolean canStart(StructureNode node, Record rec) {
+    return first(node).contains(rec.id()) && keyCompatible(rec);
   }
 
-  private boolean keyCompatible(Record record) {
+  private boolean keyCompatible(Record rec) {
     for (KeyScope scope : keyScopes) {
-      if (mismatches(scope, record)
-          && !(scope.group.keyTolerant() && !first(scope.group).contains(record.id()))) {
+      if (mismatches(scope, rec)
+          && !(scope.group.keyTolerant() && !first(scope.group).contains(rec.id()))) {
         return false;
       }
     }
     return true;
   }
 
-  private boolean mismatches(KeyScope scope, Record record) {
-    if (scope.value == null || !record.definition().hasField(scope.field())) {
+  private boolean mismatches(KeyScope scope, Record rec) {
+    if (scope.value == null || !rec.definition().hasField(scope.field())) {
       return false;
     }
-    Object value = record.values().get(scope.field());
+    Object value = rec.values().get(scope.field());
     return value != null && !value.equals(scope.value);
   }
 
-  private void bindKeys(Record record) {
+  private void bindKeys(Record rec) {
     for (KeyScope scope : keyScopes) {
-      if (!record.definition().hasField(scope.field())) {
+      if (!rec.definition().hasField(scope.field())) {
         continue;
       }
       if (scope.value == null) {
-        scope.value = record.values().get(scope.field());
-      } else if (mismatches(scope, record)) {
+        scope.value = rec.values().get(scope.field());
+      } else if (mismatches(scope, rec)) {
         problems.add(
             new Problem(
                 Severity.WARNING,
                 ProblemCode.KEY_MISMATCH,
                 lineOf(position - 1),
-                record.id(),
+                rec.id(),
                 scope.field(),
                 "'"
-                    + record.values().get(scope.field())
+                    + rec.values().get(scope.field())
                     + "' differs from '"
                     + scope.value
                     + "' of group '"
@@ -295,12 +295,12 @@ final class StructureMatcher {
       switch (constraint.kind()) {
         case UNIQUE -> {
           Map<Object, Record> seen = new HashMap<>();
-          for (Record record : concerned) {
-            Object value = record.values().get(constraint.field());
-            if (value != null && seen.putIfAbsent(value, record) != null) {
+          for (Record rec : concerned) {
+            Object value = rec.values().get(constraint.field());
+            if (value != null && seen.putIfAbsent(value, rec) != null) {
               constraintProblem(
                   ProblemCode.DUPLICATE_VALUE,
-                  record,
+                  rec,
                   constraint,
                   "value '" + value + "' occurs more than once in group '" + node.name() + "'");
             }
@@ -356,12 +356,12 @@ final class StructureMatcher {
   }
 
   private void constraintProblem(
-      ProblemCode code, Record record, Constraint constraint, String message) {
+      ProblemCode code, Record rec, Constraint constraint, String message) {
     problems.add(
         new Problem(
             Severity.ERROR,
             code,
-            record == null ? 0 : lineOf(records.indexOf(record)),
+            rec == null ? 0 : lineOf(records.indexOf(rec)),
             constraint.recordId(),
             constraint.field(),
             message));
@@ -369,15 +369,15 @@ final class StructureMatcher {
 
   // ---- helpers ----------------------------------------------------------------------------------
 
-  private void unexpected(Record record) {
+  private void unexpected(Record rec) {
     problems.add(
         new Problem(
             Severity.ERROR,
             ProblemCode.UNEXPECTED_RECORD,
-            lineOf(records.indexOf(record)),
-            record.id(),
+            lineOf(records.indexOf(rec)),
+            rec.id(),
             null,
-            "record " + record.id() + " is not allowed at this position"));
+            "record " + rec.id() + " is not allowed at this position"));
   }
 
   /** Line numbers follow list positions, so they also work for records created in code. */
