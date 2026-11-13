@@ -140,6 +140,11 @@ final class TextCodec implements FieldCodec {
 
   @Override
   public String format(Object value, int length) {
+    return format(value, length, Width.chars());
+  }
+
+  @Override
+  public String format(Object value, int length, Width width) {
     if (value == null) {
       return layout.empty(length);
     }
@@ -148,7 +153,7 @@ final class TextCodec implements FieldCodec {
     if (valuePrefix != null) {
       text = valuePrefix + text;
     }
-    return layout.fit(text, length);
+    return layout.fit(text, length, width);
   }
 
   @Override

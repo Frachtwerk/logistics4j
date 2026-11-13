@@ -21,6 +21,7 @@ package de.frachtwerk.fortras4j;
 
 import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import de.frachtwerk.fortras4j.schema.SchemaSource;
+import de.frachtwerk.fortras4j.type.Width;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -40,19 +41,42 @@ public final class FortrasReader {
 
   private final SchemaSource source;
   private final boolean failOnError;
+  private final Width width;
 
-  private FortrasReader(SchemaSource source, boolean failOnError) {
+  private FortrasReader(SchemaSource source, boolean failOnError, Width width) {
     this.source = Objects.requireNonNull(source);
     this.failOnError = failOnError;
+    this.width = Objects.requireNonNull(width);
   }
 
   public static FortrasReader of(SchemaSource source) {
-    return new FortrasReader(source, false);
+    return new FortrasReader(source, false, Width.chars());
   }
 
   /** Throw a {@link FortrasException} instead of returning a document with errors. */
   public FortrasReader failOnError(boolean failOnError) {
-    return new FortrasReader(source, failOnError);
+    return new FortrasReader(source, failOnError, width);
+  }
+
+  /**
+   * Count field positions, lengths and {@code maxLineLength} in bytes of {@code charset} instead of
+   * characters, for files whose fixed widths refer to the encoded bytes (e.g. UTF-8 with umlauts).
+   * The lines are still passed in decoded; decoding the file stays with the caller.
+   *
+   * @throws IllegalArgumentException if the charset does not encode ASCII as single bytes
+   */
+  public FortrasReader widthsIn(Charset charset) {
+    return new FortrasReader(source, failOnError, Width.bytes(charset));
+  }
+
+  /** Count field positions and lengths in characters; the default. */
+  public FortrasReader widthsInCharacters() {
+    return new FortrasReader(source, failOnError, Width.chars());
+  }
+
+  /** How field positions and lengths are counted. */
+  public Width width() {
+    return width;
   }
 
   /** Detects the layout from the first line. */
@@ -94,7 +118,7 @@ public final class FortrasReader {
     List<Problem> problems = new ArrayList<>();
     List<Record> records = new ArrayList<>(lines.size());
     for (int i = 0; i < lines.size(); i++) {
-      records.add(LineParser.parse(schema, lines.get(i), i + 1, problems));
+      records.add(LineParser.parse(schema, lines.get(i), i + 1, problems, width));
     }
     Group root = new StructureMatcher(schema, records, problems).match();
     problems.sort(java.util.Comparator.comparingInt(Problem::lineNumber));

@@ -26,6 +26,7 @@ import de.frachtwerk.fortras4j.schema.RecordDefinition;
 import de.frachtwerk.fortras4j.schema.RepeatDefinition;
 import de.frachtwerk.fortras4j.schema.ValueRule;
 import de.frachtwerk.fortras4j.type.FieldValueException;
+import de.frachtwerk.fortras4j.type.Width;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,7 +41,14 @@ final class LineParser {
   private LineParser() {}
 
   static Record parse(FortrasSchema schema, String line, int lineNumber, List<Problem> problems) {
-    if (line.length() > schema.maxLineLength()) {
+    return parse(schema, line, lineNumber, problems, Width.chars());
+  }
+
+  /** Positions, lengths and {@code maxLineLength} are counted by {@code width}. */
+  static Record parse(
+      FortrasSchema schema, String line, int lineNumber, List<Problem> problems, Width width) {
+    LineBuffer columns = LineBuffer.of(line, width);
+    if (columns.length() > schema.maxLineLength()) {
       problems.add(
           new Problem(
               Severity.ERROR,
@@ -48,7 +56,12 @@ final class LineParser {
               lineNumber,
               null,
               null,
-              line.length() + " characters, at most " + schema.maxLineLength() + " allowed"));
+              columns.length()
+                  + " "
+                  + width.unit()
+                  + ", at most "
+                  + schema.maxLineLength()
+                  + " allowed"));
     }
     RecordDefinition definition = schema.recordFor(line);
     if (definition == null) {
@@ -73,9 +86,10 @@ final class LineParser {
             values.put(
                 field.name(),
                 parseField(
-                    field, field.start(), line, lineNumber, definition, field.name(), problems));
+                    field, field.start(), columns, lineNumber, definition, field.name(), problems));
         case RepeatDefinition repeat ->
-            values.put(repeat.name(), parseBlocks(repeat, line, lineNumber, definition, problems));
+            values.put(
+                repeat.name(), parseBlocks(repeat, columns, lineNumber, definition, problems));
       }
     }
     checkRules(schema, definition, values, lineNumber, problems, problemsBefore);
@@ -116,7 +130,7 @@ final class LineParser {
   /** Reads all blocks of a repeat; empty blocks are dropped unless {@code skipEmpty} is off. */
   private static List<Map<String, Object>> parseBlocks(
       RepeatDefinition repeat,
-      String line,
+      LineBuffer columns,
       int lineNumber,
       RecordDefinition definition,
       List<Problem> problems) {
@@ -130,7 +144,7 @@ final class LineParser {
             parseField(
                 field,
                 repeat.absoluteStart(i, field),
-                line,
+                columns,
                 lineNumber,
                 definition,
                 label,
@@ -150,14 +164,13 @@ final class LineParser {
   private static Object parseField(
       FieldDefinition field,
       int start,
-      String line,
+      LineBuffer columns,
       int lineNumber,
       RecordDefinition definition,
       String label,
       List<Problem> problems) {
-    String slice = slice(line, start, start + field.length() - 1);
     try {
-      Object value = field.codec().parse(slice);
+      Object value = field.codec().parse(columns.slice(start, start + field.length() - 1));
       if (value == null && field.required()) {
         problems.add(
             new Problem(
@@ -180,13 +193,5 @@ final class LineParser {
               e.getMessage() + " at " + start + "-" + (start + field.length() - 1)));
       return e.retainedValue();
     }
-  }
-
-  /** Lines may end early: FORTRAS allows omitting trailing blank fields. */
-  static String slice(String line, int start, int end) {
-    if (start > line.length()) {
-      return "";
-    }
-    return line.substring(start - 1, Math.min(end, line.length()));
   }
 }

@@ -19,6 +19,8 @@
 
 package de.frachtwerk.fortras4j.type;
 
+import de.frachtwerk.fortras4j.ProblemCode;
+
 /** Converts between the characters of one fixed-width field and a Java value. */
 public interface FieldCodec {
 
@@ -35,6 +37,24 @@ public interface FieldCodec {
    * @throws FieldValueException if the value cannot be represented
    */
   String format(Object value, int length);
+
+  /**
+   * Like {@link #format(Object, int)}, but {@code length} is counted by {@code width}. The default
+   * accepts the characters of {@link #format(Object, int)} if their width matches and reports the
+   * value as too long otherwise; codecs that may write multibyte characters override it.
+   *
+   * @return text of exactly {@code length} as counted by {@code width}
+   * @throws FieldValueException if the value cannot be represented
+   */
+  default String format(Object value, int length, Width width) {
+    String text = format(value, length);
+    if (width.of(text) != length) {
+      throw new FieldValueException(
+          ProblemCode.VALUE_TOO_LONG,
+          "value '" + text.strip() + "' does not fit into " + length + " " + width.unit());
+    }
+    return text;
+  }
 
   /**
    * Normalizes a value set by the caller or produced by the binder (e.g. an ISO date string) to the

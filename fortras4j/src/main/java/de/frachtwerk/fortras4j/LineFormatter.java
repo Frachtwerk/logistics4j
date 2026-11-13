@@ -25,6 +25,7 @@ import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import de.frachtwerk.fortras4j.schema.RecordDefinition;
 import de.frachtwerk.fortras4j.schema.RepeatDefinition;
 import de.frachtwerk.fortras4j.type.FieldValueException;
+import de.frachtwerk.fortras4j.type.Width;
 import java.util.List;
 import java.util.Map;
 
@@ -36,23 +37,33 @@ final class LineFormatter {
 
   /** The line being written and where its problems go. */
   private record Target(
-      StringBuilder line, RecordDefinition definition, int lineNumber, List<Problem> problems) {}
+      LineBuffer line,
+      Width width,
+      RecordDefinition definition,
+      int lineNumber,
+      List<Problem> problems) {}
 
   private LineFormatter() {}
 
   static String format(FortrasSchema schema, Record rec, int lineNumber, List<Problem> problems) {
+    return format(schema, rec, lineNumber, problems, Width.chars());
+  }
+
+  /** Positions and lengths are counted by {@code width}. */
+  static String format(
+      FortrasSchema schema, Record rec, int lineNumber, List<Problem> problems, Width width) {
     RecordDefinition definition = rec.definition();
     String raw = rec.raw();
     if (definition == null || (raw != null && !rec.isModified())) {
       return raw;
     }
 
-    StringBuilder line = new StringBuilder(raw != null ? raw : "");
+    LineBuffer line = LineBuffer.of(raw != null ? raw : "", width);
     if (raw == null) {
-      ensureLength(line, definition.length());
-      line.replace(0, definition.prefix().length(), definition.prefix());
+      line.ensureLength(definition.length());
+      line.replace(1, definition.prefix());
     }
-    Target target = new Target(line, definition, lineNumber, problems);
+    Target target = new Target(line, width, definition, lineNumber, problems);
     for (FieldElement element : definition.elements()) {
       if (raw != null && !rec.isModified(element.name())) {
         continue;
@@ -74,14 +85,13 @@ final class LineFormatter {
   /** Writes all blocks of a repeat; positions without a block are blanked. */
   private static void putBlocks(
       Target target, RepeatDefinition repeat, List<Map<String, Object>> blocks) {
-    StringBuilder line = target.line();
+    LineBuffer line = target.line();
     for (int i = 0; i < repeat.count(); i++) {
       Map<String, Object> block = i < blocks.size() ? blocks.get(i) : null;
       for (FieldDefinition field : repeat.fields()) {
         int start = repeat.absoluteStart(i, field);
         if (block == null) {
-          ensureLength(line, start + field.length() - 1);
-          line.replace(start - 1, start - 1 + field.length(), " ".repeat(field.length()));
+          line.replace(start, " ".repeat(field.length()));
         } else {
           String label = repeat.name() + "[" + i + "]." + field.name();
           put(target, field, start, block.get(field.name()), label);
@@ -108,7 +118,7 @@ final class LineFormatter {
     }
     String text;
     try {
-      text = field.codec().format(value, field.length());
+      text = field.codec().format(value, field.length(), target.width());
     } catch (FieldValueException e) {
       target
           .problems()
@@ -122,25 +132,19 @@ final class LineFormatter {
                   e.getMessage()));
       return;
     }
-    if (text.length() != field.length()) {
+    if (target.width().of(text) != field.length()) {
       throw new IllegalStateException(
           "codec of "
               + definition.id()
               + "."
               + label
               + " returned "
-              + text.length()
+              + target.width().of(text)
               + " instead of "
               + field.length()
-              + " characters");
+              + " "
+              + target.width().unit());
     }
-    ensureLength(target.line(), start + field.length() - 1);
-    target.line().replace(start - 1, start - 1 + field.length(), text);
-  }
-
-  private static void ensureLength(StringBuilder line, int length) {
-    while (line.length() < length) {
-      line.append(' ');
-    }
+    target.line().replace(start, text);
   }
 }

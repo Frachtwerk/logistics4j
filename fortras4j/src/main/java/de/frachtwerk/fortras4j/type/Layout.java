@@ -73,17 +73,24 @@ public record Layout(Align align, char pad, NullAs nullAs, Overflow overflow) {
 
   /** Pads {@code text} to {@code length}; handles overflow except {@link Overflow#MAX}. */
   public String fit(String text, int length) {
-    if (text.length() > length) {
-      if (overflow == Overflow.TRUNCATE) {
-        return align == Align.LEFT
-            ? text.substring(0, length)
-            : text.substring(text.length() - length);
+    return fit(text, length, Width.chars());
+  }
+
+  /**
+   * Pads {@code text} to {@code length} as counted by {@code width}; handles overflow except {@link
+   * Overflow#MAX}. Truncating never splits a character in byte widths; the rest is padded.
+   */
+  public String fit(String text, int length, Width width) {
+    String fitted = text;
+    if (width.of(fitted) > length) {
+      if (overflow != Overflow.TRUNCATE) {
+        throw new FieldValueException(
+            ProblemCode.VALUE_TOO_LONG,
+            "value '" + text + "' does not fit into " + length + " " + width.unit());
       }
-      throw new FieldValueException(
-          ProblemCode.VALUE_TOO_LONG,
-          "value '" + text + "' does not fit into " + length + " characters");
+      fitted = align == Align.LEFT ? width.head(text, length) : width.tail(text, length);
     }
-    String padding = String.valueOf(pad).repeat(length - text.length());
-    return align == Align.LEFT ? text + padding : padding + text;
+    String padding = width.padding(pad, length - width.of(fitted));
+    return align == Align.LEFT ? fitted + padding : padding + fitted;
   }
 }
