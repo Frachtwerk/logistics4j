@@ -27,6 +27,7 @@ import de.frachtwerk.fortras4j.schema.RepeatDefinition;
 import de.frachtwerk.fortras4j.schema.StructureNode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -150,6 +151,10 @@ public final class Record implements Node {
 
   public LocalTime getTime(String field) {
     return (LocalTime) get(field);
+  }
+
+  public LocalDateTime getDateTime(String field) {
+    return (LocalDateTime) get(field);
   }
 
   public Boolean getBoolean(String field) {

@@ -40,8 +40,9 @@ public final class FieldTypes {
     registry.register(TextCodec.type("currency", TextCodec.Kind.CURRENCY));
     registry.register(NumberCodec.integerType());
     registry.register(NumberCodec.decimalType());
-    registry.register(TemporalCodec.type(true));
-    registry.register(TemporalCodec.type(false));
+    registry.register(TemporalCodec.type(TemporalCodec.Kind.DATE));
+    registry.register(TemporalCodec.type(TemporalCodec.Kind.TIME));
+    registry.register(TemporalCodec.type(TemporalCodec.Kind.DATETIME));
     registry.register(BooleanCodec.type());
     return registry;
   }
