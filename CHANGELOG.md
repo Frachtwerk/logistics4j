@@ -4,20 +4,17 @@
 
 ### 🌟 Features
 
-- `fortras4j`: value rules in the layout (`rules`) restrict a field's values depending on other fields of the record
+- `fortras4j`: value rules (`rules`) restrict a field's values depending on other fields of the record
 - `fortras4j`: field type `datetime` (`LocalDateTime`) with `pattern`
-- `ais-scan4j`: allowed status codes per scan type and the timestamp pattern come from the layout; new `statusCodesFor(scanType)`; `AisScans.of(schemas, layoutId)` for a layout that extends the bundled one
-- `fortras4j`: `FortrasReader.widthsIn(charset)` and `FortrasWriter.widthsIn(charset)` count field
-  positions, lengths and `maxLineLength` in bytes of a charset (e.g. UTF-8) instead of characters;
-  multibyte characters are never split
+- `fortras4j`: `FortrasReader.widthsIn(charset)` and `FortrasWriter.widthsIn(charset)` count positions, lengths and `maxLineLength` in bytes of a charset
+- `ais-scan4j`: status codes per scan type and the timestamp pattern come from the layout; new `statusCodesFor(scanType)`
+- `ais-scan4j`: `AisScans.of(schemas, layoutId)` for a layout that extends the bundled one
 - `ais-scan4j`: `AisScans.widthsIn(charset)` for byte widths
-- `xml-status4j`: `XmlStatusConfig` (builder or YAML) and `XmlStatusCodec` make the charset and XML
-  declaration, indentation, line breaks in values, DOCTYPE handling and element names configurable;
-  `XmlStatusFormat` keeps the behaviour of 0.1.0
+- `xml-status4j`: `XmlStatusConfig` (builder or YAML) and `XmlStatusCodec` configure charset, declaration, indentation, line breaks in values, DOCTYPE handling and element names; `XmlStatusFormat` keeps the behaviour of 0.1.0
 
 ### 💥 Breaking Changes
 
-- `ais-scan4j`: static `AisScans.allowedStatusCodes(String)` is removed; use `statusCodesFor(scanType)` on an `AisScans` instance
+- `ais-scan4j`: removed `AisScans.allowedStatusCodes(String)`; use `statusCodesFor(scanType)` on an instance
 
 ### 🐞 Bug Fixes
 
