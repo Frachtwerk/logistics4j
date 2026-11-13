@@ -1,6 +1,6 @@
 # Changelog
 
-## Version `0.2.0-SNAPSHOT`
+## Version `0.2.0`
 
 ### 🌟 Features
 
@@ -17,6 +17,8 @@
 - `ais-scan4j`: removed `AisScans.allowedStatusCodes(String)`; use `statusCodesFor(scanType)` on an instance
 
 ### 🐞 Bug Fixes
+
+- `fortras4j`: a boolean field with blank text is written as an empty field instead of failing with a `NullPointerException`
 
 ### 🔨 Dependency Upgrades
 
