@@ -70,36 +70,45 @@ final class LineParser {
                 field.name(),
                 parseField(
                     field, field.start(), line, lineNumber, definition, field.name(), problems));
-        case RepeatDefinition repeat -> {
-          List<Map<String, Object>> blocks = new ArrayList<>();
-          for (int i = 0; i < repeat.count(); i++) {
-            Map<String, Object> block = new LinkedHashMap<>();
-            for (FieldDefinition field : repeat.fields()) {
-              String label = repeat.name() + "[" + i + "]." + field.name();
-              block.put(
-                  field.name(),
-                  parseField(
-                      field,
-                      repeat.absoluteStart(i, field),
-                      line,
-                      lineNumber,
-                      definition,
-                      label,
-                      problems));
-            }
-            boolean present =
-                repeat.presentIf() != null
-                    ? block.get(repeat.presentIf()) != null
-                    : block.values().stream().anyMatch(v -> v != null);
-            if (!repeat.skipEmpty() || present) {
-              blocks.add(Collections.unmodifiableMap(block));
-            }
-          }
-          values.put(repeat.name(), List.copyOf(blocks));
-        }
+        case RepeatDefinition repeat ->
+            values.put(repeat.name(), parseBlocks(repeat, line, lineNumber, definition, problems));
       }
     }
     return Record.parsed(definition, line, lineNumber, values);
+  }
+
+  /** Reads all blocks of a repeat; empty blocks are dropped unless {@code skipEmpty} is off. */
+  private static List<Map<String, Object>> parseBlocks(
+      RepeatDefinition repeat,
+      String line,
+      int lineNumber,
+      RecordDefinition definition,
+      List<Problem> problems) {
+    List<Map<String, Object>> blocks = new ArrayList<>();
+    for (int i = 0; i < repeat.count(); i++) {
+      Map<String, Object> block = new LinkedHashMap<>();
+      for (FieldDefinition field : repeat.fields()) {
+        String label = repeat.name() + "[" + i + "]." + field.name();
+        block.put(
+            field.name(),
+            parseField(
+                field,
+                repeat.absoluteStart(i, field),
+                line,
+                lineNumber,
+                definition,
+                label,
+                problems));
+      }
+      boolean present =
+          repeat.presentIf() != null
+              ? block.get(repeat.presentIf()) != null
+              : block.values().stream().anyMatch(v -> v != null);
+      if (!repeat.skipEmpty() || present) {
+        blocks.add(Collections.unmodifiableMap(block));
+      }
+    }
+    return List.copyOf(blocks);
   }
 
   private static Object parseField(
