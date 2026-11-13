@@ -28,6 +28,7 @@ import de.frachtwerk.fortras4j.Record;
 import de.frachtwerk.fortras4j.WriteResult;
 import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import de.frachtwerk.fortras4j.schema.FortrasSchemas;
+import java.nio.charset.Charset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -99,11 +100,12 @@ public final class AisScans {
 
   private final FortrasSchema schema;
   private final FortrasReader reader;
-  private final FortrasWriter writer = FortrasWriter.create().failOnError(false);
+  private final FortrasWriter writer;
 
-  private AisScans(FortrasSchemas schemas) {
-    this.schema = schemas.get(LAYOUT);
-    this.reader = FortrasReader.of(schemas).failOnError(false);
+  private AisScans(FortrasSchema schema, FortrasReader reader, FortrasWriter writer) {
+    this.schema = schema;
+    this.reader = reader;
+    this.writer = writer;
   }
 
   /** With the bundled layout. */
@@ -114,7 +116,21 @@ public final class AisScans {
 
   /** With a layout {@value #LAYOUT} of your own, e.g. one that extends the bundled layout. */
   public static AisScans of(FortrasSchemas schemas) {
-    return new AisScans(schemas);
+    return new AisScans(
+        schemas.get(LAYOUT),
+        FortrasReader.of(schemas).failOnError(false),
+        FortrasWriter.create().failOnError(false));
+  }
+
+  /**
+   * A copy that counts field positions and the line length in bytes of {@code charset} instead of
+   * characters, e.g. for UTF-8 files whose fixed widths refer to the encoded bytes. Instances are
+   * immutable and thread-safe, so one per charset can be cached.
+   *
+   * @throws IllegalArgumentException if the charset does not encode ASCII as single bytes
+   */
+  public AisScans widthsIn(Charset charset) {
+    return new AisScans(schema, reader.widthsIn(charset), writer.widthsIn(charset));
   }
 
   /**

@@ -193,4 +193,21 @@ class AisScansTest {
 
     assertThatThrownBy(() -> AIS.write(scan)).isInstanceOf(FortrasException.class);
   }
+
+  @Test
+  void countsPositionsInBytesOfUtf8() {
+    // the issuer takes 35 bytes, but only 34 characters because ü is encoded in two bytes
+    String issuer = "Müller" + " ".repeat(28);
+    String line = LINE.replace("st" + " ".repeat(33), issuer);
+    AisScans utf8 = AIS.widthsIn(StandardCharsets.UTF_8);
+
+    AisReadResult result = utf8.read(line);
+
+    assertThat(result.problems()).isEmpty();
+    assertThat(result.scan().issuer()).isEqualTo("Müller");
+    assertThat(result.scan().statusCode()).isEqualTo(361);
+    assertThat(result.scan().additionalText()).isEqualTo("OK");
+    assertThat(utf8.write(result.scan())).isEqualTo(line);
+    assertThat(AIS.read(line).scan().statusCode()).isNotEqualTo(361);
+  }
 }
