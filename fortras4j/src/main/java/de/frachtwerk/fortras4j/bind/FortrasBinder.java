@@ -172,23 +172,28 @@ public final class FortrasBinder {
       FortrasSchema schema, String recordId, Map<String, Object> item, String path) {
     Record rec = Record.create(schema, recordId);
     for (Map.Entry<String, Object> entry : item.entrySet()) {
-      if (entry.getValue() == null) {
-        continue;
-      }
-      if (rec.definition().element(entry.getKey()) == null) {
-        if (ignoreUnknownProperties) {
-          continue;
+      if (entry.getValue() != null && isField(rec, entry.getKey(), path)) {
+        try {
+          rec.set(entry.getKey(), entry.getValue());
+        } catch (IllegalArgumentException e) {
+          throw new IllegalArgumentException(
+              path + "." + entry.getKey() + ": " + e.getMessage(), e);
         }
-        throw new IllegalArgumentException(
-            path + ": record " + recordId + " has no field '" + entry.getKey() + "'");
-      }
-      try {
-        rec.set(entry.getKey(), entry.getValue());
-      } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException(path + "." + entry.getKey() + ": " + e.getMessage(), e);
       }
     }
     return rec;
+  }
+
+  /** Whether the record has the field; an unknown one is skipped or rejected. */
+  private boolean isField(Record rec, String name, String path) {
+    if (rec.definition().element(name) != null) {
+      return true;
+    }
+    if (ignoreUnknownProperties) {
+      return false;
+    }
+    throw new IllegalArgumentException(
+        path + ": record " + rec.id() + " has no field '" + name + "'");
   }
 
   private static List<?> items(Object value, boolean repeatable, String path) {
