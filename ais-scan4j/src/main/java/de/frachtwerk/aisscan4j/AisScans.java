@@ -58,20 +58,36 @@ public final class AisScans {
 
   private static final String RECORD = "AIS";
 
+  /** Field names of the layout. */
+  private static final class Field {
+    static final String VERSION = "version";
+    static final String SCAN_TYPE = "scanart";
+    static final String RELATION = "relation";
+    static final String HUB = "hub";
+    static final String VEHICLE_NUMBER = "fahrzeugNummer";
+    static final String BARCODE = "barcode";
+    static final String ISSUER = "verursacher";
+    static final String STATUS_CODE = "statusCode";
+    static final String TIMESTAMP = "zeitstempel";
+    static final String ADDITIONAL_TEXT = "zusatztext";
+
+    private Field() {}
+  }
+
   /** Properties of {@link AisScan} and the fields of the layout. */
   static final Map<String, String> FIELDS = new LinkedHashMap<>();
 
   static {
-    FIELDS.put("version", "version");
-    FIELDS.put("scanType", "scanart");
-    FIELDS.put("relation", "relation");
-    FIELDS.put("hub", "hub");
-    FIELDS.put("vehicleNumber", "fahrzeugNummer");
-    FIELDS.put("barcode", "barcode");
-    FIELDS.put("issuer", "verursacher");
-    FIELDS.put("statusCode", "statusCode");
-    FIELDS.put("timestamp", "zeitstempel");
-    FIELDS.put("additionalText", "zusatztext");
+    FIELDS.put("version", Field.VERSION);
+    FIELDS.put("scanType", Field.SCAN_TYPE);
+    FIELDS.put("relation", Field.RELATION);
+    FIELDS.put("hub", Field.HUB);
+    FIELDS.put("vehicleNumber", Field.VEHICLE_NUMBER);
+    FIELDS.put("barcode", Field.BARCODE);
+    FIELDS.put("issuer", Field.ISSUER);
+    FIELDS.put("statusCode", Field.STATUS_CODE);
+    FIELDS.put("timestamp", Field.TIMESTAMP);
+    FIELDS.put("additionalText", Field.ADDITIONAL_TEXT);
   }
 
   private static final Map<String, Set<Integer>> STATUS_CODES =
@@ -112,7 +128,7 @@ public final class AisScans {
     Record rec = document.records(RECORD).getFirst();
 
     LocalDateTime timestamp = null;
-    String text = rec.getString("zeitstempel");
+    String text = rec.getString(Field.TIMESTAMP);
     if (text != null) {
       try {
         timestamp = LocalDateTime.parse(text, TIMESTAMP);
@@ -121,13 +137,14 @@ public final class AisScans {
             problem(
                 Severity.ERROR,
                 ProblemCode.INVALID_VALUE,
-                "zeitstempel",
+                Field.TIMESTAMP,
                 "not a timestamp: " + text));
       }
     }
 
-    String scanType = hasError(problems, "scanart") ? null : rec.getString("scanart");
-    Integer statusCode = hasError(problems, "statusCode") ? null : rec.getInt("statusCode");
+    String scanType = hasError(problems, Field.SCAN_TYPE) ? null : rec.getString(Field.SCAN_TYPE);
+    Integer statusCode =
+        hasError(problems, Field.STATUS_CODE) ? null : rec.getInt(Field.STATUS_CODE);
     if (scanType != null
         && statusCode != null
         && !allowedStatusCodes(scanType).contains(statusCode)) {
@@ -135,22 +152,22 @@ public final class AisScans {
           problem(
               Severity.WARNING,
               ProblemCode.UNEXPECTED_VALUE,
-              "statusCode",
+              Field.STATUS_CODE,
               "status code " + statusCode + " is not allowed for scan type " + scanType));
     }
 
     AisScan scan =
         new AisScan(
-            hasError(problems, "version") ? null : rec.getInt("version"),
+            hasError(problems, Field.VERSION) ? null : rec.getInt(Field.VERSION),
             scanType,
-            rec.getString("relation"),
-            rec.getString("hub"),
-            hasError(problems, "fahrzeugNummer") ? null : rec.getInt("fahrzeugNummer"),
-            rec.getString("barcode"),
-            rec.getString("verursacher"),
+            rec.getString(Field.RELATION),
+            rec.getString(Field.HUB),
+            hasError(problems, Field.VEHICLE_NUMBER) ? null : rec.getInt(Field.VEHICLE_NUMBER),
+            rec.getString(Field.BARCODE),
+            rec.getString(Field.ISSUER),
             statusCode,
             timestamp,
-            rec.getString("zusatztext"));
+            rec.getString(Field.ADDITIONAL_TEXT));
     return new AisReadResult(scan, problems, line);
   }
 
@@ -161,16 +178,16 @@ public final class AisScans {
    */
   public String write(AisScan scan) {
     Record rec = Record.create(schema, RECORD);
-    rec.set("version", scan.version());
-    rec.set("scanart", scan.scanType());
-    rec.set("relation", scan.relation());
-    rec.set("hub", scan.hub());
-    rec.set("fahrzeugNummer", scan.vehicleNumber());
-    rec.set("barcode", scan.barcode());
-    rec.set("verursacher", scan.issuer());
-    rec.set("statusCode", scan.statusCode());
-    rec.set("zeitstempel", scan.timestamp() == null ? null : scan.timestamp().format(TIMESTAMP));
-    rec.set("zusatztext", scan.additionalText());
+    rec.set(Field.VERSION, scan.version());
+    rec.set(Field.SCAN_TYPE, scan.scanType());
+    rec.set(Field.RELATION, scan.relation());
+    rec.set(Field.HUB, scan.hub());
+    rec.set(Field.VEHICLE_NUMBER, scan.vehicleNumber());
+    rec.set(Field.BARCODE, scan.barcode());
+    rec.set(Field.ISSUER, scan.issuer());
+    rec.set(Field.STATUS_CODE, scan.statusCode());
+    rec.set(Field.TIMESTAMP, scan.timestamp() == null ? null : scan.timestamp().format(TIMESTAMP));
+    rec.set(Field.ADDITIONAL_TEXT, scan.additionalText());
 
     WriteResult result = writer.write(schema, List.of(rec));
     if (!result.isValid()) {
