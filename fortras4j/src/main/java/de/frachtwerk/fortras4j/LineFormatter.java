@@ -34,6 +34,10 @@ import java.util.Map;
  */
 final class LineFormatter {
 
+  /** The line being written and where its problems go. */
+  private record Target(
+      StringBuilder line, RecordDefinition definition, int lineNumber, List<Problem> problems) {}
+
   private LineFormatter() {}
 
   static String format(FortrasSchema schema, Record rec, int lineNumber, List<Problem> problems) {
@@ -48,38 +52,18 @@ final class LineFormatter {
       ensureLength(line, definition.length());
       line.replace(0, definition.prefix().length(), definition.prefix());
     }
+    Target target = new Target(line, definition, lineNumber, problems);
     for (FieldElement element : definition.elements()) {
       if (raw != null && !rec.isModified(element.name())) {
         continue;
       }
       Object value = rec.values().get(element.name());
       switch (element) {
-        case FieldDefinition field ->
-            put(line, field, field.start(), value, definition, field.name(), lineNumber, problems);
+        case FieldDefinition field -> put(target, field, field.start(), value, field.name());
         case RepeatDefinition repeat -> {
           @SuppressWarnings("unchecked")
           List<Map<String, Object>> blocks = (List<Map<String, Object>>) value;
-          for (int i = 0; i < repeat.count(); i++) {
-            Map<String, Object> block = i < blocks.size() ? blocks.get(i) : null;
-            for (FieldDefinition field : repeat.fields()) {
-              int start = repeat.absoluteStart(i, field);
-              if (block == null) {
-                ensureLength(line, start + field.length() - 1);
-                line.replace(start - 1, start - 1 + field.length(), " ".repeat(field.length()));
-              } else {
-                String label = repeat.name() + "[" + i + "]." + field.name();
-                put(
-                    line,
-                    field,
-                    start,
-                    block.get(field.name()),
-                    definition,
-                    label,
-                    lineNumber,
-                    problems);
-              }
-            }
-          }
+          putBlocks(target, repeat, blocks);
         }
       }
     }
@@ -87,32 +71,55 @@ final class LineFormatter {
     return raw == null && schema.trimTrailingSpaces() ? result.stripTrailing() : result;
   }
 
+  /** Writes all blocks of a repeat; positions without a block are blanked. */
+  private static void putBlocks(
+      Target target, RepeatDefinition repeat, List<Map<String, Object>> blocks) {
+    StringBuilder line = target.line();
+    for (int i = 0; i < repeat.count(); i++) {
+      Map<String, Object> block = i < blocks.size() ? blocks.get(i) : null;
+      for (FieldDefinition field : repeat.fields()) {
+        int start = repeat.absoluteStart(i, field);
+        if (block == null) {
+          ensureLength(line, start + field.length() - 1);
+          line.replace(start - 1, start - 1 + field.length(), " ".repeat(field.length()));
+        } else {
+          String label = repeat.name() + "[" + i + "]." + field.name();
+          put(target, field, start, block.get(field.name()), label);
+        }
+      }
+    }
+  }
+
   private static void put(
-      StringBuilder line,
-      FieldDefinition field,
-      int start,
-      Object value,
-      RecordDefinition definition,
-      String label,
-      int lineNumber,
-      List<Problem> problems) {
+      Target target, FieldDefinition field, int start, Object value, String label) {
+    RecordDefinition definition = target.definition();
     if (value == null && field.required()) {
-      problems.add(
-          new Problem(
-              Severity.ERROR,
-              ProblemCode.MISSING_VALUE,
-              lineNumber,
-              definition.id(),
-              label,
-              "required field has no value"));
+      target
+          .problems()
+          .add(
+              new Problem(
+                  Severity.ERROR,
+                  ProblemCode.MISSING_VALUE,
+                  target.lineNumber(),
+                  definition.id(),
+                  label,
+                  "required field has no value"));
       return;
     }
     String text;
     try {
       text = field.codec().format(value, field.length());
     } catch (FieldValueException e) {
-      problems.add(
-          new Problem(e.severity(), e.code(), lineNumber, definition.id(), label, e.getMessage()));
+      target
+          .problems()
+          .add(
+              new Problem(
+                  e.severity(),
+                  e.code(),
+                  target.lineNumber(),
+                  definition.id(),
+                  label,
+                  e.getMessage()));
       return;
     }
     if (text.length() != field.length()) {
@@ -127,8 +134,8 @@ final class LineFormatter {
               + field.length()
               + " characters");
     }
-    ensureLength(line, start + field.length() - 1);
-    line.replace(start - 1, start - 1 + field.length(), text);
+    ensureLength(target.line(), start + field.length() - 1);
+    target.line().replace(start - 1, start - 1 + field.length(), text);
   }
 
   private static void ensureLength(StringBuilder line, int length) {
