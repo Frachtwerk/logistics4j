@@ -186,14 +186,19 @@ class ReaderTest {
 
   @Test
   void failsOnErrorWhenAsked() {
-    assertThatThrownBy(() -> READER.failOnError(true).read(List.of("HDR00112112026", "END0000")))
+    FortrasReader strict = READER.failOnError(true);
+    List<String> lines = List.of("HDR00112112026", "END0000");
+
+    assertThatThrownBy(() -> strict.read(lines))
         .isInstanceOf(FortrasException.class)
         .hasMessageContaining("MISSING");
   }
 
   @Test
   void rejectsFilesWithoutMatchingLayout() {
-    assertThatThrownBy(() -> READER.read(List.of("@@PHBORD100")))
+    List<String> lines = List.of("@@PHBORD100");
+
+    assertThatThrownBy(() -> READER.read(lines))
         .isInstanceOf(FortrasException.class)
         .satisfies(e ->
             assertThat(((FortrasException) e).problems())

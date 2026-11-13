@@ -73,7 +73,10 @@ class WriterTest {
   void validatesStructureBeforeWriting() {
     Record header = Record.create(SCHEMA, "HDR").set("created", "2026-11-12");
 
-    assertThatThrownBy(() -> FortrasWriter.create().write(SCHEMA, List.of(header)))
+    FortrasWriter writer = FortrasWriter.create();
+    List<Record> records = List.of(header);
+
+    assertThatThrownBy(() -> writer.write(SCHEMA, records))
         .isInstanceOf(FortrasException.class)
         .hasMessageContaining("MISSING");
 
@@ -91,7 +94,9 @@ class WriterTest {
             order,
             Record.create(SCHEMA, "END"));
 
-    assertThatThrownBy(() -> FortrasWriter.create().write(SCHEMA, records))
+    FortrasWriter writer = FortrasWriter.create();
+
+    assertThatThrownBy(() -> writer.write(SCHEMA, records))
         .isInstanceOf(FortrasException.class)
         .satisfies(e ->
             assertThat(((FortrasException) e).problems())
