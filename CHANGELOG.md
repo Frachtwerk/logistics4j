@@ -1,6 +1,6 @@
 # Changelog
 
-## Version `0.1.0-SNAPSHOT`
+## Version `0.1.0`
 
 ### 🌟 Features
 
@@ -11,3 +11,6 @@
 ### 🐞 Bug Fixes
 
 ### 🔨 Dependency Upgrades
+
+- Upgraded tools.jackson:jackson-bom from 3.2.4 to 3.3.0
+- Upgraded org.apache.maven.plugins:maven-compiler-plugin from 3.15.0 to 3.16.0
