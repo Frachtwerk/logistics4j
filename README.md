@@ -177,6 +177,31 @@ Prüfung. Felder in `repeat`-Blöcken sind nicht erlaubt.
 `FortrasSchema.rules(recordId)` und `ValueRule.allowed(werte)` beantworten, welche Werte erlaubt
 sind.
 
+### Zeichen oder Bytes
+
+Positionen, Längen und `maxLineLength` zählen standardmäßig Zeichen. Bei Mehrbyte-Encodings wie
+UTF-8 beziehen sich die festen Spalten einer Datei aber oft auf Bytes: Ein „ü“ belegt zwei Bytes
+und verschiebt sonst alle folgenden Felder. Dafür zählen Reader und Writer auf Wunsch in Bytes
+eines Charsets:
+
+```java
+FortrasReader reader = FortrasReader.of(schemas).widthsIn(StandardCharsets.UTF_8);
+FortrasWriter writer = FortrasWriter.create().widthsIn(StandardCharsets.UTF_8);
+```
+
+- Lesen: Die Feldgrenzen werden auf den Bytes der Zeile bestimmt. Teilt eine Grenze ein
+  Mehrbyte-Zeichen, wird `INVALID_VALUE` am Feld gemeldet; die Zeile selbst bleibt erhalten.
+- Schreiben: Werte werden nach ihrer Byte-Länge aufgefüllt und gekürzt; ein Mehrbyte-Zeichen wird
+  nie geteilt. Passt es nicht mehr, wird der Rest mit dem Füllzeichen aufgefüllt. `overflow: error`
+  meldet `VALUE_TOO_LONG` in Bytes. Unveränderte Sätze werden unverändert geschrieben.
+- `maxLength` von Textfeldern zählt weiterhin Zeichen.
+- Das Charset muss ASCII als einzelne Bytes kodieren (UTF-8, ISO-8859-x, windows-125x, IBM850 …);
+  bei Ein-Byte-Charsets ist das Ergebnis dasselbe wie beim Zählen von Zeichen.
+
+Dekodieren beim Lesen und Kodieren beim Schreiben der Datei bleiben Sache des Aufrufers: Reader und
+Writer arbeiten weiter auf Zeilen (`String`). Eigene Feldtypen können
+`FieldCodec.format(value, length, width)` überschreiben, wenn sie Mehrbyte-Zeichen schreiben.
+
 ### Wie die Struktur zugeordnet wird
 
 Die Zuordnung arbeitet gierig mit einer Zeile Vorausschau:
@@ -214,6 +239,9 @@ Welche Statuscodes zu welcher Scanart passen, steht als Wertregel `statusCodes` 
 (`ais.statusCodesFor(scanType)`); Abweichungen werden als Warnung `UNEXPECTED_VALUE` gemeldet.
 Der Zeitstempel ist ein `datetime` mit dem Muster `ddMMyyyyHHmmssSS` (`AisScans.TIMESTAMP`). Ein
 eigenes Layout mit der Id `ais-scan` ändert beides: `AisScans.of(schemas)`.
+`ais.widthsIn(StandardCharsets.UTF_8)` liefert eine Kopie, die Positionen und Zeilenlänge in Bytes
+zählt (siehe „Zeichen oder Bytes“); Instanzen sind unveränderlich und können je Charset
+zwischengespeichert werden.
 
 ## XML-Status (xml-status4j)
 
