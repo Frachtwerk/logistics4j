@@ -19,15 +19,19 @@
 
 package de.frachtwerk.xmlstatus4j;
 
-import tools.jackson.core.JsonParser;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.ValueDeserializer;
+import java.util.List;
 
-/** Text values may be wrapped over several lines; they are joined and trimmed. */
-final class LineBreakStripDeserializer extends ValueDeserializer<String> {
+/** A configuration is invalid; lists every problem found, not just the first. */
+public class XmlStatusConfigException extends XmlStatusException {
 
-  @Override
-  public String deserialize(JsonParser parser, DeserializationContext context) {
-    return parser.getString().replaceAll("[\\n\\r]", "").trim();
+  private final List<String> errors;
+
+  public XmlStatusConfigException(List<String> errors) {
+    super("Invalid XML status configuration:\n  - " + String.join("\n  - ", errors));
+    this.errors = List.copyOf(errors);
+  }
+
+  public List<String> errors() {
+    return errors;
   }
 }
