@@ -40,8 +40,7 @@ import java.util.Set;
 /**
  * Assigns a flat list of records to the structure of a layout.
  *
- * <p>Matching is greedy with one record of look-ahead, which suits FORTRAS: each record type opens
- * or continues a well-defined level. Rules:
+ * <p>Matching is greedy with one record of look-ahead:
  *
  * <ul>
  *   <li>A group iteration starts with a record that can begin the group and ends when the next

@@ -25,7 +25,7 @@ import java.util.Set;
 
 /**
  * Registry of field types. Built in: {@code string}, {@code code}, {@code currency}, {@code
- * integer}, {@code decimal}, {@code date}, {@code time}, {@code boolean}.
+ * integer}, {@code decimal}, {@code date}, {@code time}, {@code datetime}, {@code boolean}.
  */
 public final class FieldTypes {
 

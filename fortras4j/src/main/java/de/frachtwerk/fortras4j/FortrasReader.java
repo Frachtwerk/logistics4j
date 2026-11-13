@@ -60,8 +60,7 @@ public final class FortrasReader {
 
   /**
    * Count field positions, lengths and {@code maxLineLength} in bytes of {@code charset} instead of
-   * characters, for files whose fixed widths refer to the encoded bytes (e.g. UTF-8 with umlauts).
-   * The lines are still passed in decoded; decoding the file stays with the caller.
+   * characters. The lines are still passed in decoded; decoding the file stays with the caller.
    *
    * @throws IllegalArgumentException if the charset does not encode ASCII as single bytes
    */

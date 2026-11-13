@@ -30,10 +30,9 @@ import java.util.regex.Pattern;
  * Alphanumeric fields. Types {@code string}, {@code code} (validated against a code list) and
  * {@code currency} (ISO 4217).
  *
- * <p>Options: {@code trim} ({@code both}, {@code right}, {@code none}); {@code maxLength} (allowed
- * length below the field length, e.g. 20 for bordero numbers); {@code valuePrefix} (written in
- * front of the value and removed when reading, e.g. a partner prefix); {@code codelist} and {@code
- * strict} for codes.
+ * <p>Options: {@code trim} ({@code both}, {@code right}, {@code none}); {@code maxLength} (a
+ * maximum length below the field length); {@code valuePrefix} (written in front of the value and
+ * removed when reading, e.g. a partner prefix); {@code codelist} and {@code strict} for codes.
  */
 final class TextCodec implements FieldCodec {
 
