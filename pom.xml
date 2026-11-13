@@ -114,6 +114,9 @@
                             <removeUnusedImports/>
                             <forbidWildcardImports/>
                             <importOrder/>
+                            <licenseHeader>
+                                <file>${maven.multiModuleProjectDirectory}/license-header.txt</file>
+                            </licenseHeader>
                         </java>
                     </configuration>
                     <executions>
