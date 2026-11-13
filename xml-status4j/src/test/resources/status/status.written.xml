@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<FAR_DATA>
+  <FAHRT>
+    <FAR xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+    <SDG>
+      <POSI>
+        <BCD>
+          <BCD_ART>NVE</BCD_ART>
+          <BCD_NUMM>1234568901234567890</BCD_NUMM>
+          <BCD_STAT>001</BCD_STAT>
+          <BCD_TEXT></BCD_TEXT>
+          <BCD_TSST>202409161312</BCD_TSST>
+          <BCD_ZUST>001</BCD_ZUST>
+        </BCD>
+        <POS_ANZA>1</POS_ANZA>
+        <POS_ART>FP</POS_ART>
+        <POS_BEZE></POS_BEZE>
+        <POS_GEWI>151</POS_GEWI>
+        <POS_GGVS></POS_GGVS>
+        <POS_ZENR></POS_ZENR>
+      </POSI>
+      <POSI>
+        <BCD>
+          <BCD_ART>NVE</BCD_ART>
+          <BCD_NUMM>1234568901234567890</BCD_NUMM>
+          <BCD_STAT>001</BCD_STAT>
+          <BCD_TEXT></BCD_TEXT>
+          <BCD_TSST>202409161312</BCD_TSST>
+          <BCD_ZUST>001</BCD_ZUST>
+        </BCD>
+        <POS_ANZA>1</POS_ANZA>
+        <POS_ART>FP</POS_ART>
+        <POS_BEZE></POS_BEZE>
+        <POS_GEWI>61</POS_GEWI>
+        <POS_GGVS></POS_GGVS>
+        <POS_ZENR></POS_ZENR>
+      </POSI>
+      <SDG_HEAD>
+        <EMP>
+          <ANSP xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <ENLA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <IDNR xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <LAND>De</LAND>
+          <MAIL xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <NAM1>EmpfÃ¤nger GbR</NAM1>
+          <NAM2>EmpfÃ¤nger GbR</NAM2>
+          <ORT>Musterhausen</ORT>
+          <PLZ>67890</PLZ>
+          <STHS>HauptstraÃ&#x9f;e 100</STHS>
+          <TELE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        </EMP>
+        <GGVS xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <LDM xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <NAC xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_ABKO>910123</SDG_ABKO>
+        <SDG_ADAT>20240101</SDG_ADAT>
+        <SDG_BEME xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_EMKO>Dummy GmbH, D-12345 Musterstadt</SDG_EMKO>
+        <SDG_IDABK>12345678901234567890</SDG_IDABK>
+        <SDG_IDGV xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_KOOP>KOP</SDG_KOOP>
+        <SDG_LADZ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_LAUID>ZU</SDG_LAUID>
+        <SDG_LBEG xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_LDAT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_LEND xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_LZEI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_SDID>GEX111222333</SDG_SDID>
+        <SDG_STOP>1</SDG_STOP>
+        <SDG_TYP>G</SDG_TYP>
+        <SDG_UEAR>N</SDG_UEAR>
+        <SSU>
+          <SSU_ANZA>2</SSU_ANZA>
+          <SSU_GEWI>212</SSU_GEWI>
+        </SSU>
+        <STA>
+          <STA_CODE>300</STA_CODE>
+          <STA_GRUP xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_LAT>40.1234567890</STA_LAT>
+          <STA_LNG>16.1234567890</STA_LNG>
+          <STA_QUID>20241014</STA_QUID>
+          <STA_QUIG>MIO</STA_QUIG>
+          <STA_QUIZ>131133</STA_QUIZ>
+          <STA_TEXT></STA_TEXT>
+          <STA_TSBI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_TSEI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_TSSO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_UNTE></STA_UNTE>
+          <STA_UNTE_FORM></STA_UNTE_FORM>
+          <STA_VCOD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_VTEX xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_WAZE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        </STA>
+        <VER>
+          <BELA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <IDNR xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <LAND>DE</LAND>
+          <MAIL xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <NAM1>Versender GmbH</NAM1>
+          <NAM2></NAM2>
+          <ORT>Musterstadt</ORT>
+          <PLZ>12345</PLZ>
+          <REFE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STHS>MusterstraÃ&#x9f;e 1</STHS>
+          <TELE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        </VER>
+      </SDG_HEAD>
+    </SDG>
+  </FAHRT>
+</FAR_DATA>
