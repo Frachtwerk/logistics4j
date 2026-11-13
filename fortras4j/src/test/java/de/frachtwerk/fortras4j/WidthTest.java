@@ -70,8 +70,8 @@ class WidthTest {
     assertThat(rec.getString("city")).isEqualTo("Köln");
     assertThat(rec.getString("exact")).isEqualTo("€");
     assertThat(rec.getInt("count")).isEqualTo(42);
-    assertThat(rec.values().get("notes"))
-        .isEqualTo(List.of(Map.of("text", "äb"), Map.of("text", "xyz")));
+    assertThat(rec.values())
+        .containsEntry("notes", List.of(Map.of("text", "äb"), Map.of("text", "xyz")));
   }
 
   @Test
