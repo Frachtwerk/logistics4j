@@ -56,8 +56,9 @@ class XmlStatusFormatTest {
 
   @Test
   void refusesMalformedDocuments() throws Exception {
-    assertThatThrownBy(() -> XmlStatusFormat.read(lines("status/status.invalid.xml")))
-        .isInstanceOf(XmlStatusException.class);
+    List<String> lines = lines("status/status.invalid.xml");
+
+    assertThatThrownBy(() -> XmlStatusFormat.read(lines)).isInstanceOf(XmlStatusException.class);
   }
 
   @Test

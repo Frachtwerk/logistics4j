@@ -58,7 +58,9 @@ class SchemaTest {
             - { record: B, occurs: "1-2" }
             """);
 
-    assertThatThrownBy(() -> Demo.withLayout(yaml).build())
+    FortrasSchemas.Builder builder = Demo.withLayout(yaml);
+
+    assertThatThrownBy(builder::build)
         .isInstanceOf(SchemaException.class)
         .satisfies(e ->
             assertThat(((SchemaException) e).errors())
@@ -75,8 +77,9 @@ class SchemaTest {
     String yaml =
         Demo.layout("ABC:\n  fields:\n    - { name: x, start: 3, end: 4 }", "- { record: ABC }");
 
-    assertThatThrownBy(() -> Demo.withLayout(yaml).build())
-        .hasMessageContaining("x (3-4) overlaps prefix 'ABC' (1-3)");
+    FortrasSchemas.Builder builder = Demo.withLayout(yaml);
+
+    assertThatThrownBy(builder::build).hasMessageContaining("x (3-4) overlaps prefix 'ABC' (1-3)");
   }
 
   @Test
@@ -93,7 +96,9 @@ class SchemaTest {
           - { record: A }
         """;
 
-    assertThatThrownBy(() -> Demo.withLayout(yaml).build())
+    FortrasSchemas.Builder builder = Demo.withLayout(yaml);
+
+    assertThatThrownBy(builder::build)
         .hasMessageContaining("code 100 is a number; write it as a quoted string");
   }
 
@@ -112,7 +117,9 @@ class SchemaTest {
                 - { record: A }
             """);
 
-    assertThatThrownBy(() -> Demo.withLayout(yaml).build())
+    FortrasSchemas.Builder builder = Demo.withLayout(yaml);
+
+    assertThatThrownBy(builder::build)
         .isInstanceOf(SchemaException.class)
         .satisfies(e ->
             assertThat(((SchemaException) e).errors())
@@ -165,7 +172,8 @@ class SchemaTest {
 
               @Override
               public String format(Object value, int length) {
-                return String.format("%-" + length + "s", value == null ? "" : value);
+                String text = value == null ? "" : value.toString();
+                return text + " ".repeat(Math.max(0, length - text.length()));
               }
 
               @Override
