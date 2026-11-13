@@ -75,7 +75,7 @@ schemas.reload();
 
 ```yaml
 id: bord100                     # eindeutig; zum expliziten Lesen/Schreiben
-extends: fortras-bord100        # optional: erbt alles, überschreibt Einträge in records/codelists/defaults
+extends: fortras-bord100        # optional: erbt alles, überschreibt Einträge in records/codelists/defaults/rules
 format: BORD
 release: "100"
 detect: "^@@PHBORD100"          # Regex auf die erste Zeile; muss eindeutig sein
@@ -106,6 +106,16 @@ records:
         fields:                  # Positionen relativ zum Block
           - { name: textschluessel, start: 1, end: 3 }
           - { name: zusatztext, start: 4, end: 38 }
+
+rules:                           # erlaubte Werte eines Feldes, abhängig von anderen Feldern
+  qualifierJeArt:                # Name; ein extends ersetzt die Regel oder entfernt sie mit null
+    record: B00
+    field: qualifier
+    severity: warning            # error (Standard) oder warning
+    cases:                       # der erste passende Fall entscheidet
+      - when: { art: [A, B] }    # alle Bedingungsfelder müssen passen
+        allowed: [SHP, CON]
+    otherwise: [SHP]             # optional: ohne passenden Fall; fehlt es, ist alles erlaubt
 
 structure:
   - { record: A00, as: kopf }                    # occurs: Standard "1"
@@ -140,18 +150,32 @@ Statt `end` kann `length` angegeben werden.
 | `decimal` | `BigDecimal` | `scale` (implizite Nachkommastellen), `point: explicit` |
 | `date` | `LocalDate` | `pattern` (Standard `ddMMyyyy`) |
 | `time` | `LocalTime` | `pattern` (Standard `HHmm`) |
+| `datetime` | `LocalDateTime` | `pattern` (Standard `ddMMyyyyHHmm`) |
 | `boolean` | `Boolean` | `true`/`false`: Liste der Codes, der erste wird geschrieben |
 
 Für alle Felder gelten außerdem `required`, `default` und `description`. Eigene Typen
 registriert man mit `FortrasSchemas.builder().type(...)`.
 
-- `null`: leerer Wert als `blanks` oder `zeros`
+- `null`: leerer Wert als `blanks` oder `zeros`; `date` und `time` lesen lauter Nullen immer als
+  leer, `datetime` nur mit `null: zeros`
 - `overflow`: zu langer Wert führt zu `error`, `truncate` (Text) oder `max` (Zahlen: lauter Neunen)
 - `valuePrefix`: wird beim Schreiben vorangestellt und beim Lesen entfernt, z. B. ein Partnerpräfix vor Depotnummern
 
 > **YAML-Falle:** Rein numerische Codes wie `100` müssen in Anführungszeichen stehen, sonst
 > liest YAML sie als Zahl (der Loader meldet das). Kommas in Flow-Mappings `{ ... }` trennen
 > Einträge; Beschreibungen mit Komma deshalb in Anführungszeichen setzen.
+
+### Wertregeln
+
+Eine Regel unter `rules` schränkt die Werte eines Feldes (`field`) einer Satzart (`record`) ein,
+abhängig von anderen Feldern derselben Zeile. Die Werte werden wie die Feldwerte umgewandelt
+(Zahlen als Zahl, Codes als Text) und beim Laden geprüft. Geprüft wird beim Lesen: Ein nicht
+erlaubter Wert wird als `UNEXPECTED_VALUE` mit der `severity` der Regel am Feld gemeldet und
+bleibt im Datensatz. Ist das Feld oder ein Bedingungsfeld leer oder fehlerhaft, entfällt die
+Prüfung. Felder in `repeat`-Blöcken sind nicht erlaubt.
+
+`FortrasSchema.rules(recordId)` und `ValueRule.allowed(werte)` beantworten, welche Werte erlaubt
+sind.
 
 ### Wie die Struktur zugeordnet wird
 
@@ -186,9 +210,10 @@ AisScan scan = result.scan();           // Record: scanType, hub, barcode, times
 String out = ais.write(scan);           // leere Felder als Leerzeichen, ohne Leerzeichen am Ende
 ```
 
-Welche Statuscodes zu welcher Scanart passen (`AisScans.allowedStatusCodes`), hängt von einem
-anderen Feld ab und steht deshalb im Code statt im Layout; Abweichungen werden als Warnung
-`UNEXPECTED_VALUE` gemeldet.
+Welche Statuscodes zu welcher Scanart passen, steht als Wertregel `statusCodes` im Layout
+(`ais.statusCodesFor(scanType)`); Abweichungen werden als Warnung `UNEXPECTED_VALUE` gemeldet.
+Der Zeitstempel ist ein `datetime` mit dem Muster `ddMMyyyyHHmmssSS` (`AisScans.TIMESTAMP`). Ein
+eigenes Layout mit der Id `ais-scan` ändert beides: `AisScans.of(schemas)`.
 
 ## XML-Status (xml-status4j)
 
