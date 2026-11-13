@@ -97,8 +97,8 @@ public final class FortrasBinder {
     return mapper.convertValue(toMap(group), type);
   }
 
-  public <T> T toObject(Record record, Class<T> type) {
-    return mapper.convertValue(record.values(), type);
+  public <T> T toObject(Record rec, Class<T> type) {
+    return mapper.convertValue(rec.values(), type);
   }
 
   /** The generic form of {@link #toObject}: nested maps and lists. */
@@ -108,8 +108,8 @@ public final class FortrasBinder {
       StructureNode child = binding.node();
       List<Object> values = new ArrayList<>();
       for (Node node : group.children()) {
-        if (node instanceof Record record && record.structure() == child) {
-          values.add(new LinkedHashMap<>(record.values()));
+        if (node instanceof Record rec && rec.structure() == child) {
+          values.add(new LinkedHashMap<>(rec.values()));
         } else if (node instanceof Group sub && sub.definition() == child) {
           values.add(toMap(sub));
         }
@@ -154,7 +154,7 @@ public final class FortrasBinder {
         String itemPath = binding.repeatable() ? childPath + "[" + i + "]" : childPath;
         Map<String, Object> item = asMap(items.get(i), itemPath);
         switch (child) {
-          case RecordRef ref -> group.add(record(schema, ref.recordId(), item, itemPath));
+          case RecordRef ref -> group.add(toRecord(schema, ref.recordId(), item, itemPath));
           case GroupNode groupNode -> {
             Group sub = new Group(groupNode);
             fill(sub, groupNode, item, schema, itemPath);
@@ -168,14 +168,14 @@ public final class FortrasBinder {
     rejectUnknown(map, known, path);
   }
 
-  private Record record(
+  private Record toRecord(
       FortrasSchema schema, String recordId, Map<String, Object> item, String path) {
-    Record record = Record.create(schema, recordId);
+    Record rec = Record.create(schema, recordId);
     for (Map.Entry<String, Object> entry : item.entrySet()) {
       if (entry.getValue() == null) {
         continue;
       }
-      if (record.definition().element(entry.getKey()) == null) {
+      if (rec.definition().element(entry.getKey()) == null) {
         if (ignoreUnknownProperties) {
           continue;
         }
@@ -183,12 +183,12 @@ public final class FortrasBinder {
             path + ": record " + recordId + " has no field '" + entry.getKey() + "'");
       }
       try {
-        record.set(entry.getKey(), entry.getValue());
+        rec.set(entry.getKey(), entry.getValue());
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(path + "." + entry.getKey() + ": " + e.getMessage(), e);
       }
     }
-    return record;
+    return rec;
   }
 
   private static List<?> items(Object value, boolean repeatable, String path) {
