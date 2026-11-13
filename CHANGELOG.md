@@ -4,6 +4,10 @@
 
 ### 🌟 Features
 
+- `fortras4j`: value rules in the layout (`rules`) restrict a field's values depending on other fields of the record
+- `fortras4j`: field type `datetime` (`LocalDateTime`) with `pattern`
+- `ais-scan4j`: allowed status codes per scan type and the timestamp pattern come from the layout; new `statusCodesFor(scanType)`, static `allowedStatusCodes` is deprecated
+
 ### 🐞 Bug Fixes
 
 ### 🔨 Dependency Upgrades
