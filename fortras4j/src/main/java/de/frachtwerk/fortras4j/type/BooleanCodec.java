@@ -79,11 +79,17 @@ final class BooleanCodec implements FieldCodec {
 
   @Override
   public String format(Object value, int length) {
+    return format(value, length, Width.chars());
+  }
+
+  @Override
+  public String format(Object value, int length, Width width) {
     // coerce maps null and blank text to null, which is written as an empty field
     if (!(coerce(value) instanceof Boolean b)) {
       return layout.empty(length);
     }
-    return layout.fit(b.booleanValue() ? trueCodes.getFirst() : falseCodes.getFirst(), length);
+    return layout.fit(
+        b.booleanValue() ? trueCodes.getFirst() : falseCodes.getFirst(), length, width);
   }
 
   @Override

@@ -111,10 +111,15 @@ final class TemporalCodec implements FieldCodec {
 
   @Override
   public String format(Object value, int length) {
+    return format(value, length, Width.chars());
+  }
+
+  @Override
+  public String format(Object value, int length, Width width) {
     if (value == null) {
       return layout.empty(length);
     }
-    return layout.fit(formatter.format((TemporalAccessor) coerce(value)), length);
+    return layout.fit(formatter.format((TemporalAccessor) coerce(value)), length, width);
   }
 
   @Override
