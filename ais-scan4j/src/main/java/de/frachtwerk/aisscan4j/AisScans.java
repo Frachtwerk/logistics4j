@@ -77,15 +77,16 @@ public final class AisScans {
   /** Properties of {@link AisScan} and the fields of the layout. */
   static final Map<String, String> FIELDS = new LinkedHashMap<>();
 
+  // where property and field share the name, the field constant serves as property name too
   static {
-    FIELDS.put("version", Field.VERSION);
+    FIELDS.put(Field.VERSION, Field.VERSION);
     FIELDS.put("scanType", Field.SCAN_TYPE);
-    FIELDS.put("relation", Field.RELATION);
-    FIELDS.put("hub", Field.HUB);
+    FIELDS.put(Field.RELATION, Field.RELATION);
+    FIELDS.put(Field.HUB, Field.HUB);
     FIELDS.put("vehicleNumber", Field.VEHICLE_NUMBER);
-    FIELDS.put("barcode", Field.BARCODE);
+    FIELDS.put(Field.BARCODE, Field.BARCODE);
     FIELDS.put("issuer", Field.ISSUER);
-    FIELDS.put("statusCode", Field.STATUS_CODE);
+    FIELDS.put(Field.STATUS_CODE, Field.STATUS_CODE);
     FIELDS.put("timestamp", Field.TIMESTAMP);
     FIELDS.put("additionalText", Field.ADDITIONAL_TEXT);
   }
