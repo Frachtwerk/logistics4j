@@ -53,16 +53,16 @@ final class TemporalCodec implements FieldCodec {
       @Override
       public FieldCodec create(FieldOptions options, FieldContext context) {
         String pattern = options.string("pattern", date ? "ddMMyyyy" : "HHmm");
-        DateTimeFormatter formatter;
+        DateTimeFormatter dateTimeFormatter;
         try {
-          formatter = DateTimeFormatter.ofPattern(pattern);
+          dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
         } catch (IllegalArgumentException e) {
           throw new IllegalArgumentException("invalid pattern '" + pattern + "'");
         }
-        Layout layout =
+        Layout temporalLayout =
             Layout.from(
                 options, Layout.Align.RIGHT, ' ', Layout.NullAs.BLANKS, Layout.Overflow.ERROR);
-        return new TemporalCodec(date, formatter, layout);
+        return new TemporalCodec(date, dateTimeFormatter, temporalLayout);
       }
     };
   }

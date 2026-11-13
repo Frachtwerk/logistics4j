@@ -63,11 +63,11 @@ final class NumberCodec implements FieldCodec {
 
       @Override
       public FieldCodec create(FieldOptions options, FieldContext context) {
-        Layout layout =
+        Layout numberLayout =
             Layout.from(
                 options, Layout.Align.RIGHT, '0', Layout.NullAs.ZEROS, Layout.Overflow.ERROR);
-        checkOverflow(layout);
-        return new NumberCodec(false, 0, Point.IMPLIED, layout);
+        checkOverflow(numberLayout);
+        return new NumberCodec(false, 0, Point.IMPLIED, numberLayout);
       }
     };
   }
@@ -81,19 +81,19 @@ final class NumberCodec implements FieldCodec {
 
       @Override
       public FieldCodec create(FieldOptions options, FieldContext context) {
-        Point point = options.enumValue("point", Point.class, Point.IMPLIED);
-        int scale = options.integer("scale", 0);
-        if (scale < 0 || (point == Point.IMPLIED && scale > context.length())) {
+        Point decimalPoint = options.enumValue("point", Point.class, Point.IMPLIED);
+        int decimals = options.integer("scale", 0);
+        if (decimals < 0 || (decimalPoint == Point.IMPLIED && decimals > context.length())) {
           throw new IllegalArgumentException("scale must be between 0 and the field length");
         }
-        Layout layout =
-            point == Point.IMPLIED
+        Layout numberLayout =
+            decimalPoint == Point.IMPLIED
                 ? Layout.from(
                     options, Layout.Align.RIGHT, '0', Layout.NullAs.ZEROS, Layout.Overflow.ERROR)
                 : Layout.from(
                     options, Layout.Align.LEFT, ' ', Layout.NullAs.BLANKS, Layout.Overflow.ERROR);
-        checkOverflow(layout);
-        return new NumberCodec(true, scale, point, layout);
+        checkOverflow(numberLayout);
+        return new NumberCodec(true, decimals, decimalPoint, numberLayout);
       }
     };
   }
