@@ -31,13 +31,18 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read # for the SonarCloud pull request decoration
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history for SonarCloud blame data
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
@@ -51,3 +56,9 @@ jobs:
           name: test-reports
           path: '*/target/surefire-reports/'
           if-no-files-found: warn
+      - name: Analyze with SonarCloud
+        # skipped without token, e.g. for pull requests from forks or by Dependabot
+        if: ${{ env.SONAR_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mvn -B -ntp sonar:sonar
