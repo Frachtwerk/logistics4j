@@ -22,6 +22,7 @@ package de.frachtwerk.fortras4j;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import de.frachtwerk.fortras4j.schema.FieldDefinition;
 import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import java.io.StringWriter;
 import java.util.List;
@@ -109,5 +110,12 @@ class WriterTest {
     assertThatThrownBy(() -> order.set("orderNo", "1.5"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("ORD.orderNo");
+  }
+
+  @Test
+  void booleanCodecWritesBlankTextAsEmptyField() {
+    FieldDefinition express = (FieldDefinition) SCHEMA.record("ORD").element("express");
+
+    assertThat(express.codec().format(" ", 1)).isEqualTo(" ");
   }
 }

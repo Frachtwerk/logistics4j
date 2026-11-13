@@ -48,15 +48,15 @@ final class BooleanCodec implements FieldCodec {
 
       @Override
       public FieldCodec create(FieldOptions options, FieldContext context) {
-        List<String> trueCodes = options.strings("true", List.of("Y"));
-        List<String> falseCodes = options.strings("false", List.of("N"));
-        if (trueCodes.isEmpty() || falseCodes.isEmpty()) {
+        List<String> trueValues = options.strings("true", List.of("Y"));
+        List<String> falseValues = options.strings("false", List.of("N"));
+        if (trueValues.isEmpty() || falseValues.isEmpty()) {
           throw new IllegalArgumentException("options 'true' and 'false' must not be empty");
         }
-        Layout layout =
+        Layout booleanLayout =
             Layout.from(
                 options, Layout.Align.LEFT, ' ', Layout.NullAs.BLANKS, Layout.Overflow.ERROR);
-        return new BooleanCodec(trueCodes, falseCodes, layout);
+        return new BooleanCodec(trueValues, falseValues, booleanLayout);
       }
     };
   }
@@ -79,10 +79,10 @@ final class BooleanCodec implements FieldCodec {
 
   @Override
   public String format(Object value, int length) {
-    if (value == null) {
+    // coerce maps null and blank text to null, which is written as an empty field
+    if (!(coerce(value) instanceof Boolean b)) {
       return layout.empty(length);
     }
-    boolean b = (Boolean) coerce(value);
     return layout.fit(b ? trueCodes.getFirst() : falseCodes.getFirst(), length);
   }
 
