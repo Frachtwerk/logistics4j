@@ -21,14 +21,19 @@ package de.frachtwerk.aisscan4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import de.frachtwerk.fortras4j.FortrasException;
 import de.frachtwerk.fortras4j.Problem;
 import de.frachtwerk.fortras4j.ProblemCode;
+import de.frachtwerk.fortras4j.Severity;
+import de.frachtwerk.fortras4j.schema.FortrasSchemas;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AisScansTest {
@@ -96,15 +101,66 @@ class AisScansTest {
 
     assertThat(result.isValid()).isTrue();
     assertThat(result.problems("statusCode"))
-        .extracting(Problem::code)
-        .containsExactly(ProblemCode.UNEXPECTED_VALUE);
+        .singleElement()
+        .satisfies(p -> {
+          assertThat(p.severity()).isEqualTo(Severity.WARNING);
+          assertThat(p.code()).isEqualTo(ProblemCode.UNEXPECTED_VALUE);
+          assertThat(p.recordId()).isEqualTo("AIS");
+          assertThat(p.field()).isEqualTo("statusCode");
+        });
+    assertThat(result.scan().statusCode()).isEqualTo(361);
+    assertThat(AIS.statusCodesFor("HES"))
+        .hasValueSatisfying(codes -> assertThat(codes).containsExactly(261, 271, 281, 291, 999));
+    assertThat(AIS.statusCodesFor("FBS"))
+        .hasValueSatisfying(codes -> assertThat(codes).containsExactly(1, 3, 5, 6, 7, 8));
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  void staticStatusCodesAnswerForTheBundledLayout() {
     assertThat(AisScans.allowedStatusCodes("HES")).contains(261).doesNotContain(361);
     assertThat(AisScans.allowedStatusCodes("FBS")).containsExactlyInAnyOrder(1, 3, 5, 6, 7, 8);
   }
 
   @Test
+  void rulesAndTimestampComeFromTheLayout() throws IOException {
+    String bundled;
+    try (InputStream in = AisScans.class.getClassLoader().getResourceAsStream(AisScans.RESOURCE)) {
+      bundled = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    String own =
+        bundled
+            .replace("allowed: [361, 371, 381, 391, 999]", "allowed: [362]")
+            .replace("pattern: ddMMyyyyHHmmssSS", "pattern: yyyyMMddHHmmssSS");
+    AisScans ais =
+        AisScans.of(
+            FortrasSchemas.builder()
+                .add("own.yaml", new ByteArrayInputStream(own.getBytes(StandardCharsets.UTF_8)))
+                .build());
+
+    AisReadResult result = ais.read(LINE.replace("1010202400044900", "2024101000044900"));
+
+    assertThat(result.problems("statusCode")).hasSize(1);
+    assertThat(result.scan().timestamp()).isEqualTo(LocalDateTime.of(2024, 10, 10, 0, 4, 49));
+    assertThat(ais.statusCodesFor("HBS")).hasValue(Set.of(362));
+  }
+
+  @Test
   void invalidTimestampIsAnError() {
     AisReadResult result = AIS.read(LINE.replace("1010202400044900", "9999202400044900"));
+
+    assertThat(result.problems("timestamp"))
+        .extracting(Problem::code)
+        .containsExactly(ProblemCode.INVALID_VALUE);
+    assertThat(result.problems("timestamp"))
+        .extracting(Problem::field, Problem::isError)
+        .containsExactly(tuple("zeitstempel", true));
+    assertThat(result.scan().timestamp()).isNull();
+  }
+
+  @Test
+  void zeroTimestampIsInvalidToo() {
+    AisReadResult result = AIS.read(LINE.replace("1010202400044900", "0".repeat(16)));
 
     assertThat(result.problems("timestamp"))
         .extracting(Problem::code)
