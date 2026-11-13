@@ -136,7 +136,9 @@ class RuleTest {
               noAllowed: { record: A, field: code, cases: [{ when: { kind: X } }] }
             """;
 
-    assertThatThrownBy(() -> Demo.withLayout(yaml).build())
+    FortrasSchemas.Builder builder = Demo.withLayout(yaml);
+
+    assertThatThrownBy(builder::build)
         .isInstanceOf(SchemaException.class)
         .satisfies(e ->
             assertThat(((SchemaException) e).errors())

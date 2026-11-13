@@ -51,6 +51,12 @@ final class SchemaLoader {
 
   private static final YAMLMapper YAML = YAMLMapper.builder().build();
 
+  private static final String RULES = "rules";
+  private static final String CASES = "cases";
+  private static final String OTHERWISE = "otherwise";
+  private static final String ALLOWED = "allowed";
+  private static final String MUST_BE_A_MAPPING = "must be a mapping";
+
   private static final Set<String> TOP_LEVEL_KEYS =
       Set.of(
           "id",
@@ -65,10 +71,9 @@ final class SchemaLoader {
           "defaults",
           "codelists",
           "records",
-          "rules",
+          RULES,
           "structure");
-  private static final Set<String> MERGED_MAPS =
-      Set.of("defaults", "codelists", "records", "rules");
+  private static final Set<String> MERGED_MAPS = Set.of("defaults", "codelists", "records", RULES);
   private static final Set<String> FIELD_KEYS =
       Set.of("name", "start", "end", "length", "type", "description", "default", "required");
   private static final Set<String> REPEAT_KEYS =
@@ -81,8 +86,8 @@ final class SchemaLoader {
       Set.of("group", "occurs", "key", "keyMismatch", "constraints", "children");
   private static final Set<String> CHOICE_KEYS = Set.of("choice", "occurs", "options");
   private static final Set<String> RULE_KEYS =
-      Set.of("record", "field", "severity", "description", "cases", "otherwise");
-  private static final Set<String> CASE_KEYS = Set.of("when", "allowed");
+      Set.of("record", "field", "severity", "description", CASES, OTHERWISE);
+  private static final Set<String> CASE_KEYS = Set.of("when", ALLOWED);
 
   private SchemaLoader() {}
 
@@ -218,7 +223,7 @@ final class SchemaLoader {
       typeDefaults = parseDefaults(root.get("defaults"));
       parseCodeLists(root.get("codelists"));
       parseRecords(root.get("records"));
-      Map<String, ValueRule> rules = parseRules(root.get("rules"));
+      Map<String, ValueRule> rules = parseRules(root.get(RULES));
       GroupNode structure = parseRoot(root.get("structure"));
 
       if (errors.size() > errorsBefore) {
@@ -313,7 +318,7 @@ final class SchemaLoader {
     private void parseRecord(String recordId, JsonNode definition, Map<String, String> prefixes) {
       String path = "records." + recordId;
       if (!definition.isObject()) {
-        error(path, "must be a mapping");
+        error(path, MUST_BE_A_MAPPING);
         return;
       }
       unknownKeys(definition, RECORD_KEYS, path);
@@ -356,7 +361,7 @@ final class SchemaLoader {
 
     private FieldElement parseElement(JsonNode node, String path) {
       if (!node.isObject()) {
-        error(path, "must be a mapping");
+        error(path, MUST_BE_A_MAPPING);
         return null;
       }
       if (node.has("repeat")) {
@@ -762,7 +767,7 @@ final class SchemaLoader {
         return rules;
       }
       if (!node.isObject()) {
-        error("rules", "must be a mapping");
+        error(RULES, MUST_BE_A_MAPPING);
         return rules;
       }
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
@@ -779,7 +784,7 @@ final class SchemaLoader {
     private ValueRule parseRule(String name, JsonNode node) {
       String path = "rules." + name;
       if (!node.isObject()) {
-        error(path, "must be a mapping");
+        error(path, MUST_BE_A_MAPPING);
         return null;
       }
       unknownKeys(node, RULE_KEYS, path);
@@ -797,10 +802,10 @@ final class SchemaLoader {
         return null;
       }
       Severity severity = severity(node.get("severity"), path + ".severity");
-      List<ValueRule.Case> cases = parseCases(node.get("cases"), definition, target, path);
+      List<ValueRule.Case> cases = parseCases(node.get(CASES), definition, target, path);
       Set<Object> otherwise =
-          node.has("otherwise") ? values(node.get("otherwise"), target, path + ".otherwise") : null;
-      if (!node.has("cases") && !node.has("otherwise")) {
+          node.has(OTHERWISE) ? values(node.get(OTHERWISE), target, path + "." + OTHERWISE) : null;
+      if (!node.has(CASES) && !node.has(OTHERWISE)) {
         error(path, "needs 'cases' or 'otherwise'");
         return null;
       }
@@ -814,20 +819,20 @@ final class SchemaLoader {
         return cases;
       }
       if (!node.isArray()) {
-        error(path + ".cases", "must be a list");
+        error(path + "." + CASES, "must be a list");
         return cases;
       }
       int index = 0;
       for (JsonNode c : node) {
         String casePath = path + ".cases[" + index++ + "]";
-        if (!c.isObject() || !c.has("when") || !c.has("allowed")) {
+        if (!c.isObject() || !c.has("when") || !c.has(ALLOWED)) {
           error(casePath, "needs 'when' and 'allowed'");
           continue;
         }
         unknownKeys(c, CASE_KEYS, casePath);
         Map<String, Set<Object>> when = parseWhen(c.get("when"), definition, target, casePath);
-        Set<Object> allowed = values(c.get("allowed"), target, casePath + ".allowed");
-        if (when != null && allowed != null) {
+        Set<Object> allowed = values(c.get(ALLOWED), target, casePath + "." + ALLOWED);
+        if (!when.isEmpty() && !allowed.isEmpty()) {
           cases.add(new ValueRule.Case(when, allowed));
         }
       }
@@ -838,20 +843,20 @@ final class SchemaLoader {
         JsonNode node, RecordDefinition definition, FieldDefinition target, String path) {
       if (!node.isObject() || node.isEmpty()) {
         error(path + ".when", "must map at least one field to its values");
-        return null;
+        return Map.of();
       }
       Map<String, Set<Object>> when = new LinkedHashMap<>();
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         String fieldPath = path + ".when." + entry.getKey();
         if (entry.getKey().equals(target.name())) {
           error(fieldPath, "a rule cannot depend on its own field");
-          return null;
+          return Map.of();
         }
         FieldDefinition condition = plainField(definition, entry.getKey(), fieldPath);
         Set<Object> values =
-            condition == null ? null : values(entry.getValue(), condition, fieldPath);
-        if (values == null) {
-          return null;
+            condition == null ? Set.of() : values(entry.getValue(), condition, fieldPath);
+        if (values.isEmpty()) {
+          return Map.of();
         }
         when.put(entry.getKey(), values);
       }
@@ -876,7 +881,7 @@ final class SchemaLoader {
       return null;
     }
 
-    /** A scalar or a list, each value coerced by the field's type. */
+    /** A scalar or a list, each value coerced by the field's type; empty after an error. */
     private Set<Object> values(JsonNode node, FieldDefinition field, String path) {
       List<JsonNode> items = new ArrayList<>();
       if (node.isArray()) {
@@ -891,17 +896,17 @@ final class SchemaLoader {
           value = field.codec().coerce(toJava(item));
         } catch (RuntimeException e) {
           error(path, e.getMessage());
-          return null;
+          return Set.of();
         }
         if (value == null) {
           error(path, "contains an empty value");
-          return null;
+          return Set.of();
         }
         values.add(value);
       }
       if (values.isEmpty()) {
         error(path, "must not be empty");
-        return null;
+        return Set.of();
       }
       return values;
     }
