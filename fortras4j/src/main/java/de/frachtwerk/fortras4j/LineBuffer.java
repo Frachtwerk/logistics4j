@@ -19,6 +19,8 @@
 
 package de.frachtwerk.fortras4j;
 
+import de.frachtwerk.fortras4j.type.ByteWidth;
+import de.frachtwerk.fortras4j.type.CharacterWidth;
 import de.frachtwerk.fortras4j.type.FieldValueException;
 import de.frachtwerk.fortras4j.type.Width;
 import java.nio.ByteBuffer;
@@ -28,12 +30,12 @@ import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 
 /** A line addressed by 1-based positions, counted in characters or in bytes of a charset. */
-abstract sealed class LineBuffer permits LineBuffer.Chars, LineBuffer.Bytes {
+abstract sealed class LineBuffer {
 
   static LineBuffer of(String line, Width width) {
     return switch (width) {
-      case Width.Chars c -> new Chars(line);
-      case Width.Bytes b -> new Bytes(line, b.charset());
+      case CharacterWidth c -> new Chars(line);
+      case ByteWidth b -> new Bytes(line, b.charset());
     };
   }
 
@@ -96,13 +98,13 @@ abstract sealed class LineBuffer permits LineBuffer.Chars, LineBuffer.Bytes {
   static final class Bytes extends LineBuffer {
 
     private final Charset charset;
-    private byte[] bytes;
+    private byte[] content;
     private int size;
 
     Bytes(String line, Charset charset) {
       this.charset = charset;
-      this.bytes = line.getBytes(charset);
-      this.size = bytes.length;
+      this.content = line.getBytes(charset);
+      this.size = content.length;
     }
 
     @Override
@@ -115,7 +117,7 @@ abstract sealed class LineBuffer permits LineBuffer.Chars, LineBuffer.Bytes {
       if (start > size) {
         return "";
       }
-      ByteBuffer range = ByteBuffer.wrap(bytes, start - 1, Math.min(end, size) - start + 1);
+      ByteBuffer range = ByteBuffer.wrap(content, start - 1, Math.min(end, size) - start + 1);
       try {
         return charset
             .newDecoder()
@@ -131,11 +133,11 @@ abstract sealed class LineBuffer permits LineBuffer.Chars, LineBuffer.Bytes {
 
     @Override
     void ensureLength(int length) {
-      if (length > bytes.length) {
-        bytes = Arrays.copyOf(bytes, Math.max(length, bytes.length * 2));
+      if (length > content.length) {
+        content = Arrays.copyOf(content, Math.max(length, content.length * 2));
       }
       if (length > size) {
-        Arrays.fill(bytes, size, length, (byte) ' ');
+        Arrays.fill(content, size, length, (byte) ' ');
         size = length;
       }
     }
@@ -144,13 +146,13 @@ abstract sealed class LineBuffer permits LineBuffer.Chars, LineBuffer.Bytes {
     void replace(int start, String text) {
       byte[] encoded = text.getBytes(charset);
       ensureLength(start - 1 + encoded.length);
-      System.arraycopy(encoded, 0, bytes, start - 1, encoded.length);
+      System.arraycopy(encoded, 0, content, start - 1, encoded.length);
     }
 
     /** Decodes the bytes; a multibyte character split by an earlier overlay becomes U+FFFD. */
     @Override
     public String toString() {
-      return new String(bytes, 0, size, charset);
+      return new String(content, 0, size, charset);
     }
   }
 }
