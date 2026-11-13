@@ -19,6 +19,8 @@
 
 package de.frachtwerk.fortras4j;
 
+import java.io.Serializable;
+
 /**
  * A finding while reading or writing.
  *
@@ -32,7 +34,8 @@ public record Problem(
     int lineNumber,
     String recordId,
     String field,
-    String message) {
+    String message)
+    implements Serializable {
 
   public boolean isError() {
     return severity == Severity.ERROR;

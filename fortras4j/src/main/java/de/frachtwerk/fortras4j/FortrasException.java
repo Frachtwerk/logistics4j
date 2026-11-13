@@ -24,6 +24,7 @@ import java.util.List;
 /** A document could not be read or written; carries all problems found. */
 public class FortrasException extends RuntimeException {
 
+  // List.copyOf returns a serializable list, and Problem is serializable
   private final List<Problem> problems;
 
   public FortrasException(String message, List<Problem> problems) {
