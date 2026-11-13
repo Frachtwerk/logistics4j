@@ -238,7 +238,9 @@ String out = ais.write(scan);           // leere Felder als Leerzeichen, ohne Le
 Welche Statuscodes zu welcher Scanart passen, steht als Wertregel `statusCodes` im Layout
 (`ais.statusCodesFor(scanType)`); Abweichungen werden als Warnung `UNEXPECTED_VALUE` gemeldet.
 Der Zeitstempel ist ein `datetime` mit dem Muster `ddMMyyyyHHmmssSS` (`AisScans.TIMESTAMP`). Ein
-eigenes Layout mit der Id `ais-scan` ändert beides: `AisScans.of(schemas)`.
+eigenes Layout ändert beides: `AisScans.of(schemas, "eigene-id")` mit einem Layout, das per
+`extends: ais-scan` nur die Abweichungen enthält (Record- und Feldnamen bleiben), oder
+`AisScans.of(schemas)` mit einem vollständigen Layout der Id `ais-scan`.
 `ais.widthsIn(StandardCharsets.UTF_8)` liefert eine Kopie, die Positionen und Zeilenlänge in Bytes
 zählt (siehe „Zeichen oder Bytes“); Instanzen sind unveränderlich und können je Charset
 zwischengespeichert werden.

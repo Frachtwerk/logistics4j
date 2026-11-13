@@ -28,7 +28,7 @@ import java.time.LocalDateTime;
  * @param hub hub, e.g. MUB
  * @param issuer person or device that caused the scan; empty for tour statuses
  * @param statusCode allowed values depend on the scan type, see {@link
- *     AisScans#allowedStatusCodes(String)}
+ *     AisScans#statusCodesFor(String)}
  */
 public record AisScan(
     Integer version,

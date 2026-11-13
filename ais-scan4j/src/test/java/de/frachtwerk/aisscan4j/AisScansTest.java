@@ -116,13 +116,6 @@ class AisScansTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation")
-  void staticStatusCodesAnswerForTheBundledLayout() {
-    assertThat(AisScans.allowedStatusCodes("HES")).contains(261).doesNotContain(361);
-    assertThat(AisScans.allowedStatusCodes("FBS")).containsExactlyInAnyOrder(1, 3, 5, 6, 7, 8);
-  }
-
-  @Test
   void rulesAndTimestampComeFromTheLayout() throws IOException {
     String bundled;
     try (InputStream in = AisScans.class.getClassLoader().getResourceAsStream(AisScans.RESOURCE)) {
@@ -143,6 +136,32 @@ class AisScansTest {
     assertThat(result.problems("statusCode")).hasSize(1);
     assertThat(result.scan().timestamp()).isEqualTo(LocalDateTime.of(2024, 10, 10, 0, 4, 49));
     assertThat(ais.statusCodesFor("HBS")).hasValue(Set.of(362));
+  }
+
+  @Test
+  void ownLayoutCanExtendTheBundledLayout() {
+    String own =
+        """
+        id: own-ais
+        extends: ais-scan
+        rules:
+          statusCodes:
+            record: AIS
+            field: statusCode
+            severity: warning
+            otherwise: [1]
+        """;
+    AisScans ais =
+        AisScans.of(
+            FortrasSchemas.builder()
+                .addClasspath(AisScans.RESOURCE, AisScans.class.getClassLoader())
+                .add("own.yaml", new ByteArrayInputStream(own.getBytes(StandardCharsets.UTF_8)))
+                .build(),
+            "own-ais");
+
+    assertThat(ais.statusCodesFor("HES")).hasValue(Set.of(1));
+    assertThat(ais.read(LINE).problems("statusCode")).hasSize(1);
+    assertThat(ais.write(ais.read(LINE).scan())).isEqualTo(LINE.stripTrailing());
   }
 
   @Test
