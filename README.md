@@ -65,11 +65,10 @@ schemas.reload();
   geänderte Felder werden in die Originalzeile eingesetzt. Nicht beschriebene Bereiche und
   unbekannte Zeilen bleiben erhalten.
 - **Fehler sammeln statt abbrechen:** Wert-, Codelisten-, Struktur- und Constraint-Verstöße
-  werden als `Problem` mit stabilem `ProblemCode`, Zeile, Satzart und Feld gemeldet.
-  Übersetzung bleibt Sache der Anwendung.
-- **Layout-Prüfung beim Start:** Überlappende Felder, unbekannte Typen oder Optionen
-  (Tippfehler!), fehlende Codelisten und falsche Strukturverweise werden beim Laden gemeldet –
-  alle auf einmal, mit Pfad in die Datei.
+  werden als `Problem` mit stabilem `ProblemCode`, Zeile, Satzart und Feld gemeldet. Die
+  Übersetzung übernimmt die Anwendung.
+- **Layout-Prüfung beim Laden:** Überlappende Felder, unbekannte Typen oder Optionen, fehlende
+  Codelisten und falsche Strukturverweise werden gesammelt gemeldet, jeweils mit Pfad in die Datei.
 
 ## Layout-Format
 
@@ -136,8 +135,8 @@ structure:
       - { record: Q20 }
 ```
 
-Positionen sind 1-basiert und inklusiv, also genau wie in den Satzartbeschreibungen.
-Statt `end` kann `length` angegeben werden.
+Positionen sind 1-basiert und inklusiv wie in den Satzartbeschreibungen. Statt `end` kann
+`length` angegeben werden.
 
 ### Feldtypen
 
@@ -168,21 +167,18 @@ registriert man mit `FortrasSchemas.builder().type(...)`.
 ### Wertregeln
 
 Eine Regel unter `rules` schränkt die Werte eines Feldes (`field`) einer Satzart (`record`) ein,
-abhängig von anderen Feldern derselben Zeile. Die Werte werden wie die Feldwerte umgewandelt
-(Zahlen als Zahl, Codes als Text) und beim Laden geprüft. Geprüft wird beim Lesen: Ein nicht
-erlaubter Wert wird als `UNEXPECTED_VALUE` mit der `severity` der Regel am Feld gemeldet und
-bleibt im Datensatz. Ist das Feld oder ein Bedingungsfeld leer oder fehlerhaft, entfällt die
-Prüfung. Felder in `repeat`-Blöcken sind nicht erlaubt.
-
-`FortrasSchema.rules(recordId)` und `ValueRule.allowed(werte)` beantworten, welche Werte erlaubt
-sind.
+abhängig von anderen Feldern derselben Zeile. Die Werte in der Regel werden wie Feldwerte
+umgewandelt (Zahlen als Zahl, Codes als Text) und schon beim Laden geprüft. Beim Lesen wird ein
+nicht erlaubter Wert als `UNEXPECTED_VALUE` mit der `severity` der Regel gemeldet und bleibt im
+Datensatz. Ist das Feld oder ein Bedingungsfeld leer oder fehlerhaft, entfällt die Prüfung.
+Felder in `repeat`-Blöcken sind nicht erlaubt. Welche Werte erlaubt sind, liefern
+`FortrasSchema.rules(recordId)` und `ValueRule.allowed(werte)`.
 
 ### Zeichen oder Bytes
 
-Positionen, Längen und `maxLineLength` zählen standardmäßig Zeichen. Bei Mehrbyte-Encodings wie
-UTF-8 beziehen sich die festen Spalten einer Datei aber oft auf Bytes: Ein „ü“ belegt zwei Bytes
-und verschiebt sonst alle folgenden Felder. Dafür zählen Reader und Writer auf Wunsch in Bytes
-eines Charsets:
+Positionen, Längen und `maxLineLength` zählen standardmäßig Zeichen. Beziehen sich die Spalten
+einer UTF-8-Datei auf Bytes, belegt ein „ü“ zwei Positionen. Dafür zählen Reader und Writer auf
+Wunsch in Bytes eines Charsets:
 
 ```java
 FortrasReader reader = FortrasReader.of(schemas).widthsIn(StandardCharsets.UTF_8);
@@ -191,41 +187,37 @@ FortrasWriter writer = FortrasWriter.create().widthsIn(StandardCharsets.UTF_8);
 
 - Lesen: Die Feldgrenzen werden auf den Bytes der Zeile bestimmt. Teilt eine Grenze ein
   Mehrbyte-Zeichen, wird `INVALID_VALUE` am Feld gemeldet; die Zeile selbst bleibt erhalten.
-- Schreiben: Werte werden nach ihrer Byte-Länge aufgefüllt und gekürzt; ein Mehrbyte-Zeichen wird
-  nie geteilt. Passt es nicht mehr, wird der Rest mit dem Füllzeichen aufgefüllt. `overflow: error`
-  meldet `VALUE_TOO_LONG` in Bytes. Unveränderte Sätze werden unverändert geschrieben.
+- Schreiben: Werte werden nach ihrer Byte-Länge aufgefüllt und gekürzt. Ein Mehrbyte-Zeichen, das
+  nicht mehr passt, wird weggelassen und durch das Füllzeichen ersetzt. `overflow: error` meldet
+  `VALUE_TOO_LONG` in Bytes. Unveränderte Sätze werden unverändert geschrieben.
 - `maxLength` von Textfeldern zählt weiterhin Zeichen.
 - Das Charset muss ASCII als einzelne Bytes kodieren (UTF-8, ISO-8859-x, windows-125x, IBM850 …);
   bei Ein-Byte-Charsets ist das Ergebnis dasselbe wie beim Zählen von Zeichen.
 
-Dekodieren beim Lesen und Kodieren beim Schreiben der Datei bleiben Sache des Aufrufers: Reader und
-Writer arbeiten weiter auf Zeilen (`String`). Eigene Feldtypen können
-`FieldCodec.format(value, length, width)` überschreiben, wenn sie Mehrbyte-Zeichen schreiben.
+Reader und Writer arbeiten weiter auf Zeilen (`String`); Dekodieren und Kodieren der Datei
+übernimmt der Aufrufer. Eigene Feldtypen, die Mehrbyte-Zeichen schreiben, überschreiben
+`FieldCodec.format(value, length, width)`.
 
 ### Wie die Struktur zugeordnet wird
 
-Die Zuordnung arbeitet gierig mit einer Zeile Vorausschau:
+Die Zuordnung arbeitet gierig mit einer Zeile Vorausschau. Eine Gruppe endet, wenn die nächste
+Zeile zu keinem ihrer verbleibenden Kinder passt. Ein Element mit `max = 1` trennt: Ein zweites
+B00 in `adressen` beginnt eine neue Adresse. Zu viele Vorkommen (`TOO_MANY`) und bekannte Zeilen
+an falscher Stelle (`UNEXPECTED_RECORD`) werden gemeldet, die Zeilen bleiben erhalten.
 
-- Eine Gruppe beginnt mit einer Zeile, die sie eröffnen kann. Sie endet, wenn die nächste Zeile
-  zu keinem der verbleibenden Kinder passt.
-- `max = 1` begrenzt: Ein zweites B00 in `adressen` beginnt eine neue Adresse. Höhere Grenzen
-  werden gezählt; Überschreitungen werden als `TOO_MANY` gemeldet, die Daten bleiben erhalten.
-- Eine bekannte Zeile an falscher Stelle wird als `UNEXPECTED_RECORD` gemeldet und in der
-  aktuellen Gruppe behalten, statt Folgefehler auszulösen.
-- Choice-Optionen werden beim Binding in die Elterngruppe abgeflacht. Beim Schreiben aus
-  Objekten entsteht deshalb die Reihenfolge der Deklaration (erst alle Optionen A, dann alle B).
+Choice-Optionen werden beim Binding in die Elterngruppe abgeflacht. Beim Schreiben aus Objekten
+entsteht deshalb die Reihenfolge der Deklaration (erst alle Optionen A, dann alle B).
 
 ## Layouts
 
 Die Library liefert keine FORTRAS-Layouts mit; jede Anwendung bringt ihre eigenen YAML-Dateien
-mit (Klassenpfad oder Verzeichnis). Kooperationsspezifisches – Partnerpräfixe, eigene Codelisten,
-kürzere Nummernkreise, Pflicht-Reihenfolgen – gehört in diese Dateien oder in ein `extends`
-darauf, nicht in den Code.
+mit (Klassenpfad oder Verzeichnis). Kooperationsspezifisches wie Partnerpräfixe, eigene Codelisten
+oder Pflicht-Reihenfolgen gehört in diese Dateien oder in ein `extends` darauf.
 
 ## AIS-Scans (ais-scan4j)
 
-Kein FORTRAS, aber ein Format mit fester Spaltenbreite: Das Layout `ais-scan` liegt als YAML im
-Modul, gelesen und geschrieben wird mit fortras4j.
+Kein FORTRAS, aber ebenfalls feste Spaltenbreite: Das Layout `ais-scan` liegt als YAML im Modul
+und wird mit fortras4j gelesen und geschrieben.
 
 ```java
 AisScans ais = AisScans.create();
@@ -235,15 +227,15 @@ AisScan scan = result.scan();           // Record: scanType, hub, barcode, times
 String out = ais.write(scan);           // leere Felder als Leerzeichen, ohne Leerzeichen am Ende
 ```
 
-Welche Statuscodes zu welcher Scanart passen, steht als Wertregel `statusCodes` im Layout
-(`ais.statusCodesFor(scanType)`); Abweichungen werden als Warnung `UNEXPECTED_VALUE` gemeldet.
-Der Zeitstempel ist ein `datetime` mit dem Muster `ddMMyyyyHHmmssSS` (`AisScans.TIMESTAMP`). Ein
-eigenes Layout ändert beides: `AisScans.of(schemas, "eigene-id")` mit einem Layout, das per
-`extends: ais-scan` nur die Abweichungen enthält (Record- und Feldnamen bleiben), oder
+Die erlaubten Statuscodes je Scanart stehen als Wertregel `statusCodes` im Layout
+(`ais.statusCodesFor(scanType)`); Abweichungen sind Warnungen (`UNEXPECTED_VALUE`). Der
+Zeitstempel ist ein `datetime` mit dem Muster `ddMMyyyyHHmmssSS` (`AisScans.TIMESTAMP`). Beides
+lässt sich mit einem eigenen Layout ändern: `AisScans.of(schemas, "eigene-id")` mit einem Layout,
+das per `extends: ais-scan` nur die Abweichungen enthält (Record- und Feldnamen bleiben), oder
 `AisScans.of(schemas)` mit einem vollständigen Layout der Id `ais-scan`.
-`ais.widthsIn(StandardCharsets.UTF_8)` liefert eine Kopie, die Positionen und Zeilenlänge in Bytes
-zählt (siehe „Zeichen oder Bytes“); Instanzen sind unveränderlich und können je Charset
-zwischengespeichert werden.
+
+`ais.widthsIn(StandardCharsets.UTF_8)` liefert eine Kopie, die in Bytes zählt (siehe „Zeichen oder
+Bytes“). Instanzen sind unveränderlich und threadsicher.
 
 ## XML-Status (xml-status4j)
 
@@ -253,8 +245,7 @@ wird eine `DOCTYPE`-Deklaration ignoriert und Zeilenumbrüche in Textwerten werd
 Fehler kommen als `XmlStatusException`.
 
 Andere Einstellungen gibt `XmlStatusConfig` vor, per Builder oder als YAML-Datei; `XmlStatusCodec`
-liest und schreibt damit. Konfiguration und Codec sind unveränderlich und threadsicher, eine Instanz
-je Konfiguration (z. B. je Zeichensatz) kann also einmal erzeugt und geteilt werden:
+liest und schreibt damit. Konfiguration und Codec sind unveränderlich und threadsicher:
 
 ```java
 XmlStatusCodec utf8 =
@@ -274,11 +265,10 @@ elements:                 # Elementnamen je <Klasse>.<Property> des Modells
   Fahrt.sendungsdaten: SDG
 ```
 
-Alle Schlüssel sind optional, unbekannte Schlüssel und ungültige Werte sind Fehler
-(`XmlStatusConfigException` mit allen Fehlern). Die Deklaration nennt den Zeichensatz mit seinem
-kanonischen Java-Namen, der für die üblichen Zeichensätze der IANA-Name ist (`UTF-8`, `IBM850`,
-`windows-1252`); nur ISO-8859-1 behält die Schreibweise `iso-8859-1` der Version 0.1.0. `write`
-liefert weiter Zeilen, die der Aufrufer im Zeichensatz kodiert; `read(InputStream)` und
+Alle Schlüssel sind optional; unbekannte Schlüssel und ungültige Werte meldet eine
+`XmlStatusConfigException` gesammelt. Die Deklaration nennt den Zeichensatz mit seinem kanonischen
+Java-Namen (`UTF-8`, `IBM850`, `windows-1252`); nur ISO-8859-1 behält die Schreibweise `iso-8859-1`
+der Version 0.1.0. `write` liefert Zeilen, die der Aufrufer kodiert; `read(InputStream)` und
 `write(fahrDaten, OutputStream)` nutzen den konfigurierten Zeichensatz (Zeilenende CR LF).
 
 ## Build
