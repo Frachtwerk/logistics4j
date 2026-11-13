@@ -85,37 +85,37 @@ final class TextCodec implements FieldCodec {
 
       @Override
       public FieldCodec create(FieldOptions options, FieldContext context) {
-        Layout layout =
+        Layout textLayout =
             Layout.from(
                 options,
                 Layout.Align.LEFT,
                 ' ',
                 Layout.NullAs.BLANKS,
                 kind == Kind.STRING ? Layout.Overflow.TRUNCATE : Layout.Overflow.ERROR);
-        if (layout.overflow() == Layout.Overflow.MAX) {
+        if (textLayout.overflow() == Layout.Overflow.MAX) {
           throw new IllegalArgumentException("overflow 'max' is only allowed for numbers");
         }
-        Trim trim = options.enumValue("trim", Trim.class, Trim.BOTH);
-        int maxLength = options.integer("maxLength", context.length());
-        if (maxLength < 1 || maxLength > context.length()) {
+        Trim trimMode = options.enumValue("trim", Trim.class, Trim.BOTH);
+        int allowedLength = options.integer("maxLength", context.length());
+        if (allowedLength < 1 || allowedLength > context.length()) {
           throw new IllegalArgumentException(
               "maxLength must be between 1 and the field length " + context.length());
         }
-        String valuePrefix = options.string("valuePrefix", null);
-        CodeList codeList = null;
-        boolean strict = false;
+        String prefix = options.string("valuePrefix", null);
+        CodeList codes = null;
+        boolean strictCodes = false;
         if (kind == Kind.CODE) {
           String listName = options.string("codelist", null);
           if (listName == null) {
             throw new IllegalArgumentException("type 'code' requires option 'codelist'");
           }
-          codeList = context.codeLists().get(listName);
-          if (codeList == null) {
+          codes = context.codeLists().get(listName);
+          if (codes == null) {
             throw new IllegalArgumentException("unknown codelist '" + listName + "'");
           }
-          strict = options.bool("strict", codeList.strict());
+          strictCodes = options.bool("strict", codes.strict());
         }
-        return new TextCodec(kind, layout, trim, maxLength, valuePrefix, codeList, strict);
+        return new TextCodec(kind, textLayout, trimMode, allowedLength, prefix, codes, strictCodes);
       }
     };
   }
