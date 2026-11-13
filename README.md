@@ -198,7 +198,7 @@ Fehler kommen als `XmlStatusException`.
 ## Build
 
 ```
-./mvnw verify
+mvn verify
 ```
 
 Java 21.
