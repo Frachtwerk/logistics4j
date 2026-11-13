@@ -93,11 +93,6 @@ public final class AisScans {
     FIELDS.put("additionalText", Field.ADDITIONAL_TEXT);
   }
 
-  /** The bundled layout, loaded on first use. */
-  private static final class Bundled {
-    static final AisScans INSTANCE = create();
-  }
-
   private final FortrasSchema schema;
   private final FortrasReader reader;
   private final FortrasWriter writer;
@@ -114,10 +109,18 @@ public final class AisScans {
         FortrasSchemas.builder().addClasspath(RESOURCE, AisScans.class.getClassLoader()).build());
   }
 
-  /** With a layout {@value #LAYOUT} of your own, e.g. one that extends the bundled layout. */
+  /** With a layout {@value #LAYOUT} of your own, e.g. a copy of the bundled layout. */
   public static AisScans of(FortrasSchemas schemas) {
+    return of(schemas, LAYOUT);
+  }
+
+  /**
+   * With the layout {@code layoutId} from {@code schemas}, e.g. one that extends the bundled layout
+   * with {@code extends: ais-scan}. It must keep the record and field names of the bundled layout.
+   */
+  public static AisScans of(FortrasSchemas schemas, String layoutId) {
     return new AisScans(
-        schemas.get(LAYOUT),
+        schemas.get(layoutId),
         FortrasReader.of(schemas).failOnError(false),
         FortrasWriter.create().failOnError(false));
   }
@@ -131,17 +134,6 @@ public final class AisScans {
    */
   public AisScans widthsIn(Charset charset) {
     return new AisScans(schema, reader.widthsIn(charset), writer.widthsIn(charset));
-  }
-
-  /**
-   * Status codes the bundled layout allows for a scan type.
-   *
-   * @deprecated the codes are configured in the layout; use {@link #statusCodesFor(String)}, which
-   *     answers for the layout of this instance
-   */
-  @Deprecated(since = "0.2.0")
-  public static Set<Integer> allowedStatusCodes(String scanType) {
-    return Bundled.INSTANCE.statusCodesFor(scanType).orElse(Set.of());
   }
 
   /**
