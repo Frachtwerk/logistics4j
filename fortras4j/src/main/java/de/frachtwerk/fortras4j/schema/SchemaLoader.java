@@ -263,24 +263,29 @@ final class SchemaLoader {
           strict = boolValue(list.get("strict"), true);
           codes = list.get("codes");
         }
-        Map<String, String> parsed = new LinkedHashMap<>();
-        if (codes == null) {
-          error(path, "missing 'codes'");
-        } else if (codes.isArray()) {
-          for (JsonNode code : codes) {
-            if (!code.isString()) {
-              error(path, "code " + code + " is a number; write it as a quoted string");
-            } else {
-              parsed.put(code.asString(), null);
-            }
-          }
-        } else if (codes.isObject()) {
-          codes.properties().forEach(e -> parsed.put(e.getKey(), text(e.getValue())));
-        } else {
-          error(path, "'codes' must be a list or a mapping code -> description");
-        }
-        codeLists.put(entry.getKey(), new CodeList(entry.getKey(), parsed, strict));
+        codeLists.put(
+            entry.getKey(), new CodeList(entry.getKey(), parseCodes(codes, path), strict));
       }
+    }
+
+    private Map<String, String> parseCodes(JsonNode codes, String path) {
+      Map<String, String> parsed = new LinkedHashMap<>();
+      if (codes == null) {
+        error(path, "missing 'codes'");
+      } else if (codes.isArray()) {
+        for (JsonNode code : codes) {
+          if (!code.isString()) {
+            error(path, "code " + code + " is a number; write it as a quoted string");
+          } else {
+            parsed.put(code.asString(), null);
+          }
+        }
+      } else if (codes.isObject()) {
+        codes.properties().forEach(e -> parsed.put(e.getKey(), text(e.getValue())));
+      } else {
+        error(path, "'codes' must be a list or a mapping code -> description");
+      }
+      return parsed;
     }
 
     // ---- records ------------------------------------------------------------------------------
@@ -292,47 +297,52 @@ final class SchemaLoader {
       }
       Map<String, String> prefixes = new LinkedHashMap<>();
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
-        String recordId = entry.getKey();
-        String path = "records." + recordId;
-        JsonNode definition = entry.getValue();
-        if (!definition.isObject()) {
-          error(path, "must be a mapping");
-          continue;
-        }
-        unknownKeys(definition, RECORD_KEYS, path);
-        String prefix = definition.has("prefix") ? text(definition.get("prefix")) : recordId;
-        if (prefixes.containsKey(prefix)) {
-          error(path, "prefix '" + prefix + "' already used by " + prefixes.get(prefix));
-        }
-        prefixes.put(prefix, recordId);
+        parseRecord(entry.getKey(), entry.getValue(), prefixes);
+      }
+    }
 
-        List<FieldElement> elements = new ArrayList<>();
-        JsonNode fields = definition.get("fields");
-        if (fields != null && !fields.isArray()) {
-          error(path + ".fields", "must be a list");
-        } else if (fields != null) {
-          int index = 0;
-          for (JsonNode field : fields) {
-            FieldElement element = parseElement(field, path + ".fields[" + index++ + "]");
-            if (element != null) {
-              elements.add(element);
-            }
+    private void parseRecord(String recordId, JsonNode definition, Map<String, String> prefixes) {
+      String path = "records." + recordId;
+      if (!definition.isObject()) {
+        error(path, "must be a mapping");
+        return;
+      }
+      unknownKeys(definition, RECORD_KEYS, path);
+      String prefix = definition.has("prefix") ? text(definition.get("prefix")) : recordId;
+      if (prefixes.containsKey(prefix)) {
+        error(path, "prefix '" + prefix + "' already used by " + prefixes.get(prefix));
+      }
+      prefixes.put(prefix, recordId);
+
+      List<FieldElement> elements = parseElements(definition.get("fields"), path);
+      checkPositions(path, prefix, elements);
+
+      int lastEnd =
+          Math.max(prefix.length(), elements.stream().mapToInt(FieldElement::end).max().orElse(0));
+      int length = intValue(definition.get("length"), path + ".length", lastEnd);
+      if (length < lastEnd) {
+        error(path + ".length", "is shorter than the last field (ends at " + lastEnd + ")");
+      }
+      records.put(
+          recordId,
+          new RecordDefinition(
+              recordId, prefix, text(definition.get("description")), elements, length));
+    }
+
+    private List<FieldElement> parseElements(JsonNode fields, String path) {
+      List<FieldElement> elements = new ArrayList<>();
+      if (fields != null && !fields.isArray()) {
+        error(path + ".fields", "must be a list");
+      } else if (fields != null) {
+        int index = 0;
+        for (JsonNode field : fields) {
+          FieldElement element = parseElement(field, path + ".fields[" + index++ + "]");
+          if (element != null) {
+            elements.add(element);
           }
         }
-        checkPositions(path, prefix, elements);
-
-        int lastEnd =
-            Math.max(
-                prefix.length(), elements.stream().mapToInt(FieldElement::end).max().orElse(0));
-        int length = intValue(definition.get("length"), path + ".length", lastEnd);
-        if (length < lastEnd) {
-          error(path + ".length", "is shorter than the last field (ends at " + lastEnd + ")");
-        }
-        records.put(
-            recordId,
-            new RecordDefinition(
-                recordId, prefix, text(definition.get("description")), elements, length));
       }
+      return elements;
     }
 
     private FieldElement parseElement(JsonNode node, String path) {
@@ -394,24 +404,30 @@ final class SchemaLoader {
         error(path, "unknown option(s) " + unused + " for type '" + typeName + "'");
       }
 
-      Object defaultValue = null;
-      if (node.has("default")) {
-        try {
-          defaultValue = codec.coerce(toJava(node.get("default")));
-          codec.format(defaultValue, end - start + 1);
-        } catch (RuntimeException e) {
-          error(path + ".default", e.getMessage());
-        }
-      }
       return new FieldDefinition(
           name,
           start,
           end,
           typeName,
           codec,
-          defaultValue,
+          defaultValue(node, codec, end - start + 1, path),
           boolValue(node.get("required"), false),
           text(node.get("description")));
+    }
+
+    /** The {@code default} option, coerced and checked to fit into the field. */
+    private Object defaultValue(JsonNode node, FieldCodec codec, int length, String path) {
+      if (!node.has("default")) {
+        return null;
+      }
+      try {
+        Object defaultValue = codec.coerce(toJava(node.get("default")));
+        codec.format(defaultValue, length);
+        return defaultValue;
+      } catch (RuntimeException e) {
+        error(path + ".default", e.getMessage());
+        return null;
+      }
     }
 
     private RepeatDefinition parseRepeat(JsonNode node, String path) {
@@ -428,12 +444,32 @@ final class SchemaLoader {
       if (start + count * stride - 1 > maxLineLength) {
         error(path, "ends beyond maxLineLength " + maxLineLength);
       }
-      List<FieldDefinition> fields = new ArrayList<>();
       JsonNode fieldNodes = node.get("fields");
       if (fieldNodes == null || !fieldNodes.isArray() || fieldNodes.isEmpty()) {
         error(path + ".fields", "a repeated block needs fields");
         return null;
       }
+      List<FieldDefinition> fields = parseBlockFields(fieldNodes, path, stride);
+      Set<String> names = new HashSet<>();
+      fields.forEach(field -> names.add(field.name()));
+      String presentIf = text(node.get("presentIf"));
+      if (presentIf != null && !names.contains(presentIf)) {
+        error(path + ".presentIf", "'" + presentIf + "' is no field of the block");
+      }
+      return new RepeatDefinition(
+          name,
+          start,
+          count,
+          stride,
+          fields,
+          boolValue(node.get("skipEmpty"), true),
+          presentIf,
+          text(node.get("description")));
+    }
+
+    /** Fields of a repeated block; positions are relative to the block of width {@code stride}. */
+    private List<FieldDefinition> parseBlockFields(JsonNode fieldNodes, String path, int stride) {
+      List<FieldDefinition> fields = new ArrayList<>();
       Set<String> names = new HashSet<>();
       int index = 0;
       for (JsonNode fieldNode : fieldNodes) {
@@ -451,24 +487,42 @@ final class SchemaLoader {
         }
         fields.add(field);
       }
-      String presentIf = text(node.get("presentIf"));
-      if (presentIf != null && !names.contains(presentIf)) {
-        error(path + ".presentIf", "'" + presentIf + "' is no field of the block");
-      }
-      return new RepeatDefinition(
-          name,
-          start,
-          count,
-          stride,
-          fields,
-          boolValue(node.get("skipEmpty"), true),
-          presentIf,
-          text(node.get("description")));
+      return fields;
     }
+
+    private record Range(String name, int start, int end) {}
 
     /** Fields must not overlap each other or the record prefix; names must be unique. */
     private void checkPositions(String path, String prefix, List<FieldElement> elements) {
-      record Range(String name, int start, int end) {}
+      List<Range> ranges = ranges(path, prefix, elements);
+      ranges.sort((a, b) -> Integer.compare(a.start(), b.start()));
+      for (int i = 1; i < ranges.size(); i++) {
+        Range previous = ranges.get(i - 1);
+        Range current = ranges.get(i);
+        if (current.start() <= previous.end()) {
+          error(
+              path,
+              current.name()
+                  + " ("
+                  + current.start()
+                  + "-"
+                  + current.end()
+                  + ") overlaps "
+                  + previous.name()
+                  + " ("
+                  + previous.start()
+                  + "-"
+                  + previous.end()
+                  + ")");
+        }
+      }
+    }
+
+    /**
+     * Occupied positions of the prefix and all fields, repeated blocks expanded; reports duplicate
+     * field names on the way.
+     */
+    private List<Range> ranges(String path, String prefix, List<FieldElement> elements) {
       List<Range> ranges = new ArrayList<>();
       if (!prefix.isEmpty()) {
         ranges.add(new Range("prefix '" + prefix + "'", 1, prefix.length()));
@@ -493,27 +547,7 @@ final class SchemaLoader {
           }
         }
       }
-      ranges.sort((a, b) -> Integer.compare(a.start(), b.start()));
-      for (int i = 1; i < ranges.size(); i++) {
-        Range previous = ranges.get(i - 1);
-        Range current = ranges.get(i);
-        if (current.start() <= previous.end()) {
-          error(
-              path,
-              current.name()
-                  + " ("
-                  + current.start()
-                  + "-"
-                  + current.end()
-                  + ") overlaps "
-                  + previous.name()
-                  + " ("
-                  + previous.start()
-                  + "-"
-                  + previous.end()
-                  + ")");
-        }
-      }
+      return ranges;
     }
 
     // ---- structure ----------------------------------------------------------------------------
@@ -524,9 +558,9 @@ final class SchemaLoader {
         return new GroupNode("document", Occurs.ONCE, null, false, List.of(), List.of());
       }
       List<StructureNode> children = parseChildren(node, "structure");
-      GroupNode root = new GroupNode("document", Occurs.ONCE, null, false, children, List.of());
-      checkGroup(root, "structure");
-      return root;
+      GroupNode document = new GroupNode("document", Occurs.ONCE, null, false, children, List.of());
+      checkGroup(document, "structure");
+      return document;
     }
 
     private List<StructureNode> parseChildren(JsonNode list, String path) {
@@ -551,58 +585,70 @@ final class SchemaLoader {
       }
       Occurs occurs = occurs(node.get("occurs"), path);
       if (node.has("record")) {
-        unknownKeys(node, RECORD_REF_KEYS, path);
-        String recordId = text(node.get("record"));
-        if (!records.containsKey(recordId)) {
-          error(path, "unknown record '" + recordId + "'");
-        }
-        return new RecordRef(recordId, occurs, text(node.get("as")));
+        return parseRecordRef(node, path, occurs);
       }
       if (node.has("group")) {
-        unknownKeys(node, GROUP_KEYS, path);
-        String name = text(node.get("group"));
-        path = path + " (" + name + ")";
-        JsonNode children = node.get("children");
-        if (children == null || !children.isArray() || children.isEmpty()) {
-          error(path, "a group needs 'children'");
-          return null;
-        }
-        List<Constraint> constraints = parseConstraints(node.get("constraints"), path);
-        String keyMismatch = node.has("keyMismatch") ? text(node.get("keyMismatch")) : "error";
-        if (!keyMismatch.equals("error") && !keyMismatch.equals("warn")) {
-          error(path + ".keyMismatch", "must be 'error' or 'warn'");
-        }
-        if (node.has("keyMismatch") && !node.has("key")) {
-          error(path + ".keyMismatch", "requires 'key'");
-        }
-        return new GroupNode(
-            name,
-            occurs,
-            text(node.get("key")),
-            keyMismatch.equals("warn"),
-            parseChildren(children, path + ".children"),
-            constraints);
+        return parseGroup(node, path, occurs);
       }
       if (node.has("choice")) {
-        unknownKeys(node, CHOICE_KEYS, path);
-        String name = text(node.get("choice"));
-        JsonNode options = node.get("options");
-        if (options == null || !options.isArray() || options.size() < 2) {
-          error(path, "a choice needs at least two 'options'");
-          return null;
-        }
-        List<StructureNode> parsed = new ArrayList<>();
-        int index = 0;
-        for (JsonNode o : options) {
-          StructureNode option1 = parseNode(o, path + ".options[" + index++ + "]", true);
-          if (option1 != null) {
-            parsed.add(option1);
-          }
-        }
-        return new ChoiceNode(name, occurs, parsed);
+        return parseChoice(node, path, occurs);
       }
       error(path, "must contain 'record', 'group' or 'choice'");
       return null;
+    }
+
+    private RecordRef parseRecordRef(JsonNode node, String path, Occurs occurs) {
+      unknownKeys(node, RECORD_REF_KEYS, path);
+      String recordId = text(node.get("record"));
+      if (!records.containsKey(recordId)) {
+        error(path, "unknown record '" + recordId + "'");
+      }
+      return new RecordRef(recordId, occurs, text(node.get("as")));
+    }
+
+    private GroupNode parseGroup(JsonNode node, String path, Occurs occurs) {
+      unknownKeys(node, GROUP_KEYS, path);
+      String name = text(node.get("group"));
+      path = path + " (" + name + ")";
+      JsonNode children = node.get("children");
+      if (children == null || !children.isArray() || children.isEmpty()) {
+        error(path, "a group needs 'children'");
+        return null;
+      }
+      List<Constraint> constraints = parseConstraints(node.get("constraints"), path);
+      String keyMismatch = node.has("keyMismatch") ? text(node.get("keyMismatch")) : "error";
+      if (!keyMismatch.equals("error") && !keyMismatch.equals("warn")) {
+        error(path + ".keyMismatch", "must be 'error' or 'warn'");
+      }
+      if (node.has("keyMismatch") && !node.has("key")) {
+        error(path + ".keyMismatch", "requires 'key'");
+      }
+      return new GroupNode(
+          name,
+          occurs,
+          text(node.get("key")),
+          keyMismatch.equals("warn"),
+          parseChildren(children, path + ".children"),
+          constraints);
+    }
+
+    private ChoiceNode parseChoice(JsonNode node, String path, Occurs occurs) {
+      unknownKeys(node, CHOICE_KEYS, path);
+      String name = text(node.get("choice"));
+      JsonNode options = node.get("options");
+      if (options == null || !options.isArray() || options.size() < 2) {
+        error(path, "a choice needs at least two 'options'");
+        return null;
+      }
+      List<StructureNode> parsed = new ArrayList<>();
+      int index = 0;
+      for (JsonNode o : options) {
+        StructureNode option = parseNode(o, path + ".options[" + index++ + "]", true);
+        if (option != null) {
+          parsed.add(option);
+        }
+      }
+      return new ChoiceNode(name, occurs, parsed);
     }
 
     private List<Constraint> parseConstraints(JsonNode node, String path) {
@@ -612,34 +658,40 @@ final class SchemaLoader {
       List<Constraint> result = new ArrayList<>();
       int index = 0;
       for (JsonNode c : node) {
-        String cPath = path + ".constraints[" + index++ + "]";
-        unknownKeys(c, Set.of("unique", "required", "first", "record", "values"), cPath);
-        Constraint.Kind kind = null;
-        String field = null;
-        for (Constraint.Kind k : Constraint.Kind.values()) {
-          String key = k.name().toLowerCase(java.util.Locale.ROOT);
-          if (c.has(key)) {
-            if (kind != null) {
-              error(cPath, "only one of unique/required/first per constraint");
-            }
-            kind = k;
-            field = text(c.get(key));
-          }
+        Constraint constraint = parseConstraint(c, path + ".constraints[" + index++ + "]");
+        if (constraint != null) {
+          result.add(constraint);
         }
-        if (kind == null) {
-          error(cPath, "needs one of 'unique', 'required' or 'first'");
-          continue;
-        }
-        List<String> values = new ArrayList<>();
-        if (c.has("values")) {
-          c.get("values").forEach(v -> values.add(text(v)));
-        }
-        if (kind != Constraint.Kind.UNIQUE && values.isEmpty()) {
-          error(cPath, "'" + kind.name().toLowerCase(java.util.Locale.ROOT) + "' needs 'values'");
-        }
-        result.add(new Constraint(kind, text(c.get("record")), field, values));
       }
       return result;
+    }
+
+    private Constraint parseConstraint(JsonNode c, String cPath) {
+      unknownKeys(c, Set.of("unique", "required", "first", "record", "values"), cPath);
+      Constraint.Kind kind = null;
+      String field = null;
+      for (Constraint.Kind k : Constraint.Kind.values()) {
+        String key = k.name().toLowerCase(java.util.Locale.ROOT);
+        if (c.has(key)) {
+          if (kind != null) {
+            error(cPath, "only one of unique/required/first per constraint");
+          }
+          kind = k;
+          field = text(c.get(key));
+        }
+      }
+      if (kind == null) {
+        error(cPath, "needs one of 'unique', 'required' or 'first'");
+        return null;
+      }
+      List<String> values = new ArrayList<>();
+      if (c.has("values")) {
+        c.get("values").forEach(v -> values.add(text(v)));
+      }
+      if (kind != Constraint.Kind.UNIQUE && values.isEmpty()) {
+        error(cPath, "'" + kind.name().toLowerCase(java.util.Locale.ROOT) + "' needs 'values'");
+      }
+      return new Constraint(kind, text(c.get("record")), field, values);
     }
 
     /** Binding names must be unique per group; keys and constraints must refer to real fields. */
@@ -761,6 +813,10 @@ final class SchemaLoader {
       }
       return result;
     }
+
+    private static String text(JsonNode node) {
+      return node == null || node.isNull() ? null : node.asString();
+    }
   }
 
   static void collectRecords(StructureNode node, Set<String> into) {
@@ -769,10 +825,6 @@ final class SchemaLoader {
       case GroupNode g -> g.children().forEach(c -> collectRecords(c, into));
       case ChoiceNode c -> c.options().forEach(o -> collectRecords(o, into));
     }
-  }
-
-  private static String text(JsonNode node) {
-    return node == null || node.isNull() ? null : node.asString();
   }
 
   private static Object toJava(JsonNode node) {
