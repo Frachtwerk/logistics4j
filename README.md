@@ -14,6 +14,8 @@ xml-status4j            XML-Status (FAR_DATA): Objektmodell, Lesen und Schreiben
 `groupId` aller Module ist `de.frachtwerk`, die Version wird über den Parent `logistics4j`
 gemeinsam geführt.
 
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=Frachtwerk_logistics4j&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Frachtwerk_logistics4j)
+
 ## Verwendung
 
 ```java
