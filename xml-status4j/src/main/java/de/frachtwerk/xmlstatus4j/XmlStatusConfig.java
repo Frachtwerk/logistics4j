@@ -109,15 +109,22 @@ public final class XmlStatusConfig {
   private static final String DEFAULT_ROOT_ELEMENT = "FAR_DATA";
   private static final Pattern XML_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9._-]*");
   // keys of the YAML form, also used in error messages
-  private static final String ENCODING = "encoding";
-  private static final String DECLARATION = "declaration";
-  private static final String INDENT = "indent";
-  private static final String LINE_BREAKS = "lineBreaks";
-  private static final String DOCTYPE = "doctype";
-  private static final String ROOT_ELEMENT = "rootElement";
-  private static final String ELEMENTS = "elements";
+  private static final String KEY_ENCODING = "encoding";
+  private static final String KEY_DECLARATION = "declaration";
+  private static final String KEY_INDENT = "indent";
+  private static final String KEY_LINE_BREAKS = "lineBreaks";
+  private static final String KEY_DOCTYPE = "doctype";
+  private static final String KEY_ROOT_ELEMENT = "rootElement";
+  private static final String KEY_ELEMENTS = "elements";
   private static final Set<String> KEYS =
-      Set.of(ENCODING, DECLARATION, INDENT, LINE_BREAKS, DOCTYPE, ROOT_ELEMENT, ELEMENTS);
+      Set.of(
+          KEY_ENCODING,
+          KEY_DECLARATION,
+          KEY_INDENT,
+          KEY_LINE_BREAKS,
+          KEY_DOCTYPE,
+          KEY_ROOT_ELEMENT,
+          KEY_ELEMENTS);
   private static final YAMLMapper YAML = YAMLMapper.builder().build();
   private static final XmlStatusConfig DEFAULTS = builder().build();
 
@@ -317,13 +324,13 @@ public final class XmlStatusConfig {
      * the declaration names this charset, see {@link #automaticDeclaration()}.
      */
     public Builder encoding(Charset encoding) {
-      this.encoding = Objects.requireNonNull(encoding, ENCODING);
+      this.encoding = Objects.requireNonNull(encoding, KEY_ENCODING);
       return this;
     }
 
     /** Writes the given declaration, e.g. {@code <?xml version="1.0" encoding="utf-8"?>}. */
     public Builder declaration(String declaration) {
-      this.declaration = Objects.requireNonNull(declaration, DECLARATION);
+      this.declaration = Objects.requireNonNull(declaration, KEY_DECLARATION);
       this.declarationMode = DeclarationMode.EXPLICIT;
       return this;
     }
@@ -353,17 +360,17 @@ public final class XmlStatusConfig {
     }
 
     public Builder lineBreaks(LineBreaks lineBreaks) {
-      this.lineBreaks = Objects.requireNonNull(lineBreaks, LINE_BREAKS);
+      this.lineBreaks = Objects.requireNonNull(lineBreaks, KEY_LINE_BREAKS);
       return this;
     }
 
     public Builder doctype(Doctype doctype) {
-      this.doctype = Objects.requireNonNull(doctype, DOCTYPE);
+      this.doctype = Objects.requireNonNull(doctype, KEY_DOCTYPE);
       return this;
     }
 
     public Builder rootElement(String name) {
-      this.rootElement = Objects.requireNonNull(name, ROOT_ELEMENT);
+      this.rootElement = Objects.requireNonNull(name, KEY_ROOT_ELEMENT);
       return this;
     }
 
@@ -394,13 +401,13 @@ public final class XmlStatusConfig {
 
     private void validate(List<String> errors, String prefix) {
       if (declarationMode == DeclarationMode.EXPLICIT && !declaration.startsWith("<?xml")) {
-        errors.add(prefix + DECLARATION + ": must start with '<?xml': " + declaration);
+        errors.add(prefix + KEY_DECLARATION + ": must start with '<?xml': " + declaration);
       }
       if (!XML_NAME.matcher(rootElement).matches()) {
-        errors.add(prefix + ROOT_ELEMENT + ": not an XML name: '" + rootElement + "'");
+        errors.add(prefix + KEY_ROOT_ELEMENT + ": not an XML name: '" + rootElement + "'");
       }
       elements.forEach(
-          (key, name) -> validateElement(errors, prefix + ELEMENTS + "." + key, key, name));
+          (key, name) -> validateElement(errors, prefix + KEY_ELEMENTS + "." + key, key, name));
     }
 
     private static void validateElement(List<String> errors, String path, String key, String name) {
@@ -458,13 +465,13 @@ public final class XmlStatusConfig {
           error(key, "unknown key; allowed: " + KEYS);
         }
       }
-      text(root, ENCODING).ifPresent(this::encoding);
-      text(root, DECLARATION).ifPresent(this::declaration);
-      bool(root, INDENT).ifPresent(builder::indent);
-      enumValue(root, LINE_BREAKS, LineBreaks.class).ifPresent(builder::lineBreaks);
-      enumValue(root, DOCTYPE, Doctype.class).ifPresent(builder::doctype);
-      text(root, ROOT_ELEMENT).ifPresent(builder::rootElement);
-      elements(root.get(ELEMENTS));
+      text(root, KEY_ENCODING).ifPresent(this::encoding);
+      text(root, KEY_DECLARATION).ifPresent(this::declaration);
+      bool(root, KEY_INDENT).ifPresent(builder::indent);
+      enumValue(root, KEY_LINE_BREAKS, LineBreaks.class).ifPresent(builder::lineBreaks);
+      enumValue(root, KEY_DOCTYPE, Doctype.class).ifPresent(builder::doctype);
+      text(root, KEY_ROOT_ELEMENT).ifPresent(builder::rootElement);
+      elements(root.get(KEY_ELEMENTS));
 
       List<String> buildErrors = new ArrayList<>();
       builder.validate(buildErrors, source + ": ");
@@ -479,7 +486,7 @@ public final class XmlStatusConfig {
       try {
         builder.encoding(Charset.forName(name));
       } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
-        error(ENCODING, "unsupported charset '" + name + "'");
+        error(KEY_ENCODING, "unsupported charset '" + name + "'");
       }
     }
 
@@ -496,14 +503,14 @@ public final class XmlStatusConfig {
         return;
       }
       if (!node.isObject()) {
-        error(ELEMENTS, "must be a mapping of <class>.<property> to an element name");
+        error(KEY_ELEMENTS, "must be a mapping of <class>.<property> to an element name");
         return;
       }
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         if (entry.getValue().isString()) {
           builder.element(entry.getKey(), entry.getValue().asString());
         } else {
-          error(ELEMENTS + "." + entry.getKey(), "must be an element name");
+          error(KEY_ELEMENTS + "." + entry.getKey(), "must be an element name");
         }
       }
     }
