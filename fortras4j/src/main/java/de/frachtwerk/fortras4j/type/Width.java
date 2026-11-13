@@ -23,12 +23,11 @@ import java.nio.charset.Charset;
 
 /**
  * How positions and lengths of fixed-width fields are counted: in characters (the default) or in
- * the bytes a charset encodes them to. Byte widths matter for multibyte charsets such as UTF-8,
- * where an umlaut takes two bytes; for single-byte charsets both count the same.
+ * the bytes of a charset, where e.g. an umlaut takes two bytes in UTF-8.
  */
 public sealed interface Width permits CharacterWidth, ByteWidth {
 
-  /** Counts characters ({@code char}s), as all versions before 0.2.0 did. */
+  /** Counts characters ({@code char}s). */
   static Width chars() {
     return CharacterWidth.INSTANCE;
   }

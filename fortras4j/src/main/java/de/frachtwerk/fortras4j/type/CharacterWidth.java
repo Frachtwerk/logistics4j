@@ -19,7 +19,7 @@
 
 package de.frachtwerk.fortras4j.type;
 
-/** Characters; {@link #head} and {@link #tail} cut exactly at the length, as before 0.2.0. */
+/** Characters; {@link #head} and {@link #tail} cut exactly at the length. */
 public final class CharacterWidth implements Width {
 
   static final CharacterWidth INSTANCE = new CharacterWidth();
