@@ -202,3 +202,9 @@ Fehler kommen als `XmlStatusException`.
 ```
 
 Java 21.
+
+## Lizenz
+
+Logistics4J steht unter der GNU Lesser General Public License v3 oder (nach Wahl) einer späteren Version,
+siehe [LICENSE](LICENSE). Die LGPL ergänzt die GNU General Public License v3, deren Text in
+[COPYING](COPYING) liegt.

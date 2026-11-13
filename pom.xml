@@ -12,6 +12,30 @@
     <description>Readers and writers for logistics file formats: FORTRAS and other fixed-width files driven by layout
         configuration, plus AIS scan and XML status formats
     </description>
+    <url>https://github.com/Frachtwerk/logistics4j</url>
+
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License v3, or (at your option) any later version</name>
+            <url>https://www.gnu.org/licenses/lgpl-3.0.txt</url>
+            <comments>For more information see the LICENSE included with the sources.</comments>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:https://github.com/Frachtwerk/logistics4j.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/Frachtwerk/logistics4j.git</developerConnection>
+        <url>https://github.com/Frachtwerk/logistics4j/tree/main</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>Paul Wannenmacher</name>
+            <email>paul.wannenmacher@frachtwerk.de</email>
+            <organization>Frachtwerk GmbH</organization>
+            <organizationUrl>https://www.frachtwerk.de</organizationUrl>
+        </developer>
+    </developers>
 
     <modules>
         <module>fortras4j</module>
