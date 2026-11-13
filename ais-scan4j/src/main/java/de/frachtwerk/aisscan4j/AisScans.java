@@ -39,7 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Reads and writes AIS scans with the layout {@value #LAYOUT}.
+ * Reads and writes AIS scans with the layout {@value #LAYOUT}. Immutable and thread-safe.
  *
  * <pre>{@code
  * AisScans ais = AisScans.create();
@@ -127,8 +127,7 @@ public final class AisScans {
 
   /**
    * A copy that counts field positions and the line length in bytes of {@code charset} instead of
-   * characters, e.g. for UTF-8 files whose fixed widths refer to the encoded bytes. Instances are
-   * immutable and thread-safe, so one per charset can be cached.
+   * characters.
    *
    * @throws IllegalArgumentException if the charset does not encode ASCII as single bytes
    */
