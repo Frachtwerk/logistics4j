@@ -166,13 +166,14 @@ class XmlStatusCodecTest {
     FahrDaten fahrDaten = XmlStatusFormat.read(List.of("<FAR_DATA><FAHRT/></FAR_DATA>"));
     fahrDaten.getFahrten().getFirst().setSendungsdaten(List.of(sendungWithStatusText("1 €")));
     XmlStatusCodec ibm850 = codec(Charset.forName("IBM850"));
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-    assertThatThrownBy(() -> ibm850.write(fahrDaten, new ByteArrayOutputStream()))
+    assertThatThrownBy(() -> ibm850.write(fahrDaten, out))
         .isInstanceOf(XmlStatusException.class)
         .hasMessage("cannot encode in IBM850");
-    byte[] invalidUtf8 = {'<', 'F', (byte) 0xC3, '>'};
-    assertThatThrownBy(
-            () -> codec(StandardCharsets.UTF_8).read(new ByteArrayInputStream(invalidUtf8)))
+    XmlStatusCodec utf8 = codec(StandardCharsets.UTF_8);
+    ByteArrayInputStream invalidUtf8 = new ByteArrayInputStream(new byte[] {'<', (byte) 0xC3});
+    assertThatThrownBy(() -> utf8.read(invalidUtf8))
         .isInstanceOf(XmlStatusException.class)
         .hasMessage("not valid UTF-8");
   }

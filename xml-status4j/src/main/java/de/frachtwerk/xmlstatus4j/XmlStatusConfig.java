@@ -108,9 +108,16 @@ public final class XmlStatusConfig {
 
   private static final String DEFAULT_ROOT_ELEMENT = "FAR_DATA";
   private static final Pattern XML_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9._-]*");
+  // keys of the YAML form, also used in error messages
+  private static final String ENCODING = "encoding";
+  private static final String DECLARATION = "declaration";
+  private static final String INDENT = "indent";
+  private static final String LINE_BREAKS = "lineBreaks";
+  private static final String DOCTYPE = "doctype";
+  private static final String ROOT_ELEMENT = "rootElement";
+  private static final String ELEMENTS = "elements";
   private static final Set<String> KEYS =
-      Set.of(
-          "encoding", "declaration", "indent", "lineBreaks", "doctype", "rootElement", "elements");
+      Set.of(ENCODING, DECLARATION, INDENT, LINE_BREAKS, DOCTYPE, ROOT_ELEMENT, ELEMENTS);
   private static final YAMLMapper YAML = YAMLMapper.builder().build();
   private static final XmlStatusConfig DEFAULTS = builder().build();
 
@@ -310,13 +317,13 @@ public final class XmlStatusConfig {
      * the declaration names this charset, see {@link #automaticDeclaration()}.
      */
     public Builder encoding(Charset encoding) {
-      this.encoding = Objects.requireNonNull(encoding, "encoding");
+      this.encoding = Objects.requireNonNull(encoding, ENCODING);
       return this;
     }
 
     /** Writes the given declaration, e.g. {@code <?xml version="1.0" encoding="utf-8"?>}. */
     public Builder declaration(String declaration) {
-      this.declaration = Objects.requireNonNull(declaration, "declaration");
+      this.declaration = Objects.requireNonNull(declaration, DECLARATION);
       this.declarationMode = DeclarationMode.EXPLICIT;
       return this;
     }
@@ -346,17 +353,17 @@ public final class XmlStatusConfig {
     }
 
     public Builder lineBreaks(LineBreaks lineBreaks) {
-      this.lineBreaks = Objects.requireNonNull(lineBreaks, "lineBreaks");
+      this.lineBreaks = Objects.requireNonNull(lineBreaks, LINE_BREAKS);
       return this;
     }
 
     public Builder doctype(Doctype doctype) {
-      this.doctype = Objects.requireNonNull(doctype, "doctype");
+      this.doctype = Objects.requireNonNull(doctype, DOCTYPE);
       return this;
     }
 
     public Builder rootElement(String name) {
-      this.rootElement = Objects.requireNonNull(name, "rootElement");
+      this.rootElement = Objects.requireNonNull(name, ROOT_ELEMENT);
       return this;
     }
 
@@ -387,13 +394,13 @@ public final class XmlStatusConfig {
 
     private void validate(List<String> errors, String prefix) {
       if (declarationMode == DeclarationMode.EXPLICIT && !declaration.startsWith("<?xml")) {
-        errors.add(prefix + "declaration: must start with '<?xml': " + declaration);
+        errors.add(prefix + DECLARATION + ": must start with '<?xml': " + declaration);
       }
       if (!XML_NAME.matcher(rootElement).matches()) {
-        errors.add(prefix + "rootElement: not an XML name: '" + rootElement + "'");
+        errors.add(prefix + ROOT_ELEMENT + ": not an XML name: '" + rootElement + "'");
       }
       elements.forEach(
-          (key, name) -> validateElement(errors, prefix + "elements." + key, key, name));
+          (key, name) -> validateElement(errors, prefix + ELEMENTS + "." + key, key, name));
     }
 
     private static void validateElement(List<String> errors, String path, String key, String name) {
@@ -451,13 +458,13 @@ public final class XmlStatusConfig {
           error(key, "unknown key; allowed: " + KEYS);
         }
       }
-      text(root, "encoding").ifPresent(this::encoding);
-      text(root, "declaration").ifPresent(this::declaration);
-      bool(root, "indent").ifPresent(builder::indent);
-      enumValue(root, "lineBreaks", LineBreaks.class).ifPresent(builder::lineBreaks);
-      enumValue(root, "doctype", Doctype.class).ifPresent(builder::doctype);
-      text(root, "rootElement").ifPresent(builder::rootElement);
-      elements(root.get("elements"));
+      text(root, ENCODING).ifPresent(this::encoding);
+      text(root, DECLARATION).ifPresent(this::declaration);
+      bool(root, INDENT).ifPresent(builder::indent);
+      enumValue(root, LINE_BREAKS, LineBreaks.class).ifPresent(builder::lineBreaks);
+      enumValue(root, DOCTYPE, Doctype.class).ifPresent(builder::doctype);
+      text(root, ROOT_ELEMENT).ifPresent(builder::rootElement);
+      elements(root.get(ELEMENTS));
 
       List<String> buildErrors = new ArrayList<>();
       builder.validate(buildErrors, source + ": ");
@@ -472,7 +479,7 @@ public final class XmlStatusConfig {
       try {
         builder.encoding(Charset.forName(name));
       } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
-        error("encoding", "unsupported charset '" + name + "'");
+        error(ENCODING, "unsupported charset '" + name + "'");
       }
     }
 
@@ -489,14 +496,14 @@ public final class XmlStatusConfig {
         return;
       }
       if (!node.isObject()) {
-        error("elements", "must be a mapping of <class>.<property> to an element name");
+        error(ELEMENTS, "must be a mapping of <class>.<property> to an element name");
         return;
       }
       for (Map.Entry<String, JsonNode> entry : node.properties()) {
         if (entry.getValue().isString()) {
           builder.element(entry.getKey(), entry.getValue().asString());
         } else {
-          error("elements." + entry.getKey(), "must be an element name");
+          error(ELEMENTS + "." + entry.getKey(), "must be an element name");
         }
       }
     }

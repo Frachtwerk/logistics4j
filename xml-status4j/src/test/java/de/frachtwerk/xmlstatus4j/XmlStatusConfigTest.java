@@ -178,8 +178,8 @@ class XmlStatusConfigTest {
     assertThatThrownBy(() -> load("elements: [a]\n"))
         .isInstanceOf(XmlStatusConfigException.class)
         .hasMessageContaining("elements: must be a mapping");
-    assertThatThrownBy(
-            () -> XmlStatusConfig.loadClasspath("missing.yaml", getClass().getClassLoader()))
+    ClassLoader loader = getClass().getClassLoader();
+    assertThatThrownBy(() -> XmlStatusConfig.loadClasspath("missing.yaml", loader))
         .isInstanceOf(XmlStatusConfigException.class)
         .hasMessageContaining("missing.yaml: not found");
   }

@@ -19,6 +19,7 @@
 
 package de.frachtwerk.xmlstatus4j;
 
+import java.util.stream.Collectors;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.ValueDeserializer;
@@ -43,7 +44,11 @@ final class LineBreakDeserializer extends ValueDeserializer<String> {
   public String deserialize(JsonParser parser, DeserializationContext context) {
     String text = parser.getString();
     if (replaceBySpace) {
-      return text.replaceAll("[ \\t]*[\\n\\r]+[ \\t]*", " ").trim();
+      // one space for each run of line breaks and the blanks around it
+      return text.lines()
+          .map(String::strip)
+          .filter(line -> !line.isEmpty())
+          .collect(Collectors.joining(" "));
     }
     return text.replaceAll("[\\n\\r]", "").trim();
   }
