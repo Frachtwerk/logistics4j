@@ -24,19 +24,17 @@ import de.frachtwerk.fortras4j.FortrasException;
 import de.frachtwerk.fortras4j.FortrasReader;
 import de.frachtwerk.fortras4j.FortrasWriter;
 import de.frachtwerk.fortras4j.Problem;
-import de.frachtwerk.fortras4j.ProblemCode;
 import de.frachtwerk.fortras4j.Record;
-import de.frachtwerk.fortras4j.Severity;
 import de.frachtwerk.fortras4j.WriteResult;
 import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import de.frachtwerk.fortras4j.schema.FortrasSchemas;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -53,7 +51,10 @@ public final class AisScans {
   public static final String LAYOUT = "ais-scan";
   public static final String RESOURCE = "de/frachtwerk/aisscan4j/ais-scan.yaml";
 
-  /** Day, month, year, time of day and hundredths of a second. */
+  /**
+   * Pattern of the timestamp in the bundled layout: day, month, year, time of day and hundredths of
+   * a second.
+   */
   public static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("ddMMyyyyHHmmssSS");
 
   private static final String RECORD = "AIS";
@@ -91,12 +92,10 @@ public final class AisScans {
     FIELDS.put("additionalText", Field.ADDITIONAL_TEXT);
   }
 
-  private static final Map<String, Set<Integer>> STATUS_CODES =
-      Map.of(
-          "HES", Set.of(261, 271, 281, 291, 999),
-          "HBS", Set.of(361, 371, 381, 391, 999),
-          "LBH", Set.of(961, 971, 981, 991));
-  private static final Set<Integer> OTHER_STATUS_CODES = Set.of(1, 3, 5, 6, 7, 8);
+  /** The bundled layout, loaded on first use. */
+  private static final class Bundled {
+    static final AisScans INSTANCE = create();
+  }
 
   private final FortrasSchema schema;
   private final FortrasReader reader;
@@ -118,45 +117,44 @@ public final class AisScans {
     return new AisScans(schemas);
   }
 
-  /** Status codes allowed for a scan type. */
+  /**
+   * Status codes the bundled layout allows for a scan type.
+   *
+   * @deprecated the codes are configured in the layout; use {@link #statusCodesFor(String)}, which
+   *     answers for the layout of this instance
+   */
+  @Deprecated(since = "0.2.0")
   public static Set<Integer> allowedStatusCodes(String scanType) {
-    return STATUS_CODES.getOrDefault(scanType, OTHER_STATUS_CODES);
+    return Bundled.INSTANCE.statusCodesFor(scanType).orElse(Set.of());
+  }
+
+  /**
+   * Status codes the layout allows for a scan type, from its value rule on {@code statusCode}.
+   *
+   * @return empty if the layout does not restrict the status code for this scan type
+   */
+  public Optional<Set<Integer>> statusCodesFor(String scanType) {
+    return schema.rules(RECORD).stream()
+        .filter(rule -> rule.field().equals(Field.STATUS_CODE))
+        .findFirst()
+        .flatMap(rule -> rule.allowed(Map.of(Field.SCAN_TYPE, scanType)))
+        .map(AisScans::toIntegers);
+  }
+
+  private static Set<Integer> toIntegers(Set<Object> codes) {
+    Set<Integer> result = new LinkedHashSet<>();
+    codes.forEach(code -> result.add(((Number) code).intValue()));
+    return Collections.unmodifiableSet(result);
   }
 
   public AisReadResult read(String line) {
     FortrasDocument document = reader.read(List.of(line), schema);
-    List<Problem> problems = new ArrayList<>(document.problems());
+    List<Problem> problems = document.problems();
     Record rec = document.records(RECORD).getFirst();
-
-    LocalDateTime timestamp = null;
-    String text = rec.getString(Field.TIMESTAMP);
-    if (text != null) {
-      try {
-        timestamp = LocalDateTime.parse(text, TIMESTAMP);
-      } catch (DateTimeParseException e) {
-        problems.add(
-            problem(
-                Severity.ERROR,
-                ProblemCode.INVALID_VALUE,
-                Field.TIMESTAMP,
-                "not a timestamp: " + text));
-      }
-    }
 
     String scanType = hasError(problems, Field.SCAN_TYPE) ? null : rec.getString(Field.SCAN_TYPE);
     Integer statusCode =
         hasError(problems, Field.STATUS_CODE) ? null : rec.getInt(Field.STATUS_CODE);
-    if (scanType != null
-        && statusCode != null
-        && !allowedStatusCodes(scanType).contains(statusCode)) {
-      problems.add(
-          problem(
-              Severity.WARNING,
-              ProblemCode.UNEXPECTED_VALUE,
-              Field.STATUS_CODE,
-              "status code " + statusCode + " is not allowed for scan type " + scanType));
-    }
-
     AisScan scan =
         new AisScan(
             hasError(problems, Field.VERSION) ? null : rec.getInt(Field.VERSION),
@@ -167,7 +165,7 @@ public final class AisScans {
             rec.getString(Field.BARCODE),
             rec.getString(Field.ISSUER),
             statusCode,
-            timestamp,
+            rec.getDateTime(Field.TIMESTAMP),
             rec.getString(Field.ADDITIONAL_TEXT));
     return new AisReadResult(scan, problems, line);
   }
@@ -187,7 +185,7 @@ public final class AisScans {
     rec.set(Field.BARCODE, scan.barcode());
     rec.set(Field.ISSUER, scan.issuer());
     rec.set(Field.STATUS_CODE, scan.statusCode());
-    rec.set(Field.TIMESTAMP, scan.timestamp() == null ? null : scan.timestamp().format(TIMESTAMP));
+    rec.set(Field.TIMESTAMP, scan.timestamp());
     rec.set(Field.ADDITIONAL_TEXT, scan.additionalText());
 
     WriteResult result = writer.write(schema, List.of(rec));
@@ -199,10 +197,5 @@ public final class AisScans {
 
   private static boolean hasError(List<Problem> problems, String field) {
     return problems.stream().anyMatch(p -> p.isError() && field.equals(p.field()));
-  }
-
-  private static Problem problem(
-      Severity severity, ProblemCode code, String field, String message) {
-    return new Problem(severity, code, 1, RECORD, field, message);
   }
 }
