@@ -109,10 +109,10 @@ final class StructureMatcher {
     int count = 0;
     int firstExcessLine = 0;
     Record next;
-    while ((next = peek(parent)) != null && canStart(node, next)) {
-      if (count == 1 && occurs.max() == 1) {
-        break;
-      }
+    // an element with max 1 acts as a separator: it ends after one occurrence
+    while ((next = peek(parent)) != null
+        && canStart(node, next)
+        && !(count == 1 && occurs.max() == 1)) {
       if (count == occurs.max()) {
         firstExcessLine = lineOf(position);
       }
@@ -123,6 +123,11 @@ final class StructureMatcher {
       }
       count++;
     }
+    checkOccurrences(node, parent, count, firstExcessLine);
+  }
+
+  private void checkOccurrences(StructureNode node, Group parent, int count, int firstExcessLine) {
+    Occurs occurs = node.occurs();
     if (count < occurs.min()) {
       problems.add(
           new Problem(
@@ -136,9 +141,7 @@ final class StructureMatcher {
                   + occurs
                   + " time(s), found "
                   + count
-                  + (parent.definition() == schema.root()
-                      ? ""
-                      : " in group '" + parent.name() + "'")));
+                  + (parent.definition() == schema.root() ? "" : " in " + group(parent.name()))));
     } else if (count > occurs.max()) {
       problems.add(
           new Problem(
@@ -293,66 +296,75 @@ final class StructureMatcher {
       List<Record> concerned =
           members.stream().filter(r -> constraint.recordId().equals(r.id())).toList();
       switch (constraint.kind()) {
-        case UNIQUE -> {
-          Map<Object, Record> seen = new HashMap<>();
-          for (Record rec : concerned) {
-            Object value = rec.values().get(constraint.field());
-            if (value != null && seen.putIfAbsent(value, rec) != null) {
-              constraintProblem(
-                  ProblemCode.DUPLICATE_VALUE,
-                  rec,
-                  constraint,
-                  "value '" + value + "' occurs more than once in group '" + node.name() + "'");
-            }
-          }
-        }
-        case REQUIRED -> {
-          Set<String> present = new HashSet<>();
-          concerned.forEach(
-              r -> present.add(Objects.toString(r.values().get(constraint.field()), null)));
-          Set<String> missing = new LinkedHashSet<>(constraint.values());
-          missing.removeAll(present);
-          if (!missing.isEmpty()) {
-            Record anchor = members.isEmpty() ? null : members.getFirst();
-            constraintProblem(
-                ProblemCode.MISSING_VALUE,
-                anchor,
-                constraint,
-                "group '"
-                    + node.name()
-                    + "' lacks "
-                    + constraint.recordId()
-                    + " with "
-                    + constraint.field()
-                    + " "
-                    + missing);
-          }
-        }
-        case FIRST -> {
-          if (!concerned.isEmpty()) {
-            Record first = concerned.getFirst();
-            Object value = first.values().get(constraint.field());
-            if (!constraint.values().contains(Objects.toString(value, null))) {
-              constraintProblem(
-                  ProblemCode.UNEXPECTED_VALUE,
-                  first,
-                  constraint,
-                  "group '"
-                      + node.name()
-                      + "' must start with "
-                      + constraint.recordId()
-                      + " "
-                      + constraint.field()
-                      + " "
-                      + constraint.values()
-                      + ", found '"
-                      + value
-                      + "'");
-            }
-          }
-        }
+        case UNIQUE -> checkUnique(node, constraint, concerned);
+        case REQUIRED -> checkRequired(node, constraint, concerned, members);
+        case FIRST -> checkFirst(node, constraint, concerned);
       }
     }
+  }
+
+  private void checkUnique(GroupNode node, Constraint constraint, List<Record> concerned) {
+    Map<Object, Record> seen = new HashMap<>();
+    for (Record rec : concerned) {
+      Object value = rec.values().get(constraint.field());
+      if (value != null && seen.putIfAbsent(value, rec) != null) {
+        constraintProblem(
+            ProblemCode.DUPLICATE_VALUE,
+            rec,
+            constraint,
+            "value '" + value + "' occurs more than once in " + group(node.name()));
+      }
+    }
+  }
+
+  private void checkRequired(
+      GroupNode node, Constraint constraint, List<Record> concerned, List<Record> members) {
+    Set<String> present = new HashSet<>();
+    concerned.forEach(r -> present.add(Objects.toString(r.values().get(constraint.field()), null)));
+    Set<String> missing = new LinkedHashSet<>(constraint.values());
+    missing.removeAll(present);
+    if (!missing.isEmpty()) {
+      Record anchor = members.isEmpty() ? null : members.getFirst();
+      constraintProblem(
+          ProblemCode.MISSING_VALUE,
+          anchor,
+          constraint,
+          group(node.name())
+              + " lacks "
+              + constraint.recordId()
+              + " with "
+              + constraint.field()
+              + " "
+              + missing);
+    }
+  }
+
+  private void checkFirst(GroupNode node, Constraint constraint, List<Record> concerned) {
+    if (concerned.isEmpty()) {
+      return;
+    }
+    Record first = concerned.getFirst();
+    Object value = first.values().get(constraint.field());
+    if (!constraint.values().contains(Objects.toString(value, null))) {
+      constraintProblem(
+          ProblemCode.UNEXPECTED_VALUE,
+          first,
+          constraint,
+          group(node.name())
+              + " must start with "
+              + constraint.recordId()
+              + " "
+              + constraint.field()
+              + " "
+              + constraint.values()
+              + ", found '"
+              + value
+              + "'");
+    }
+  }
+
+  private static String group(String name) {
+    return "group '" + name + "'";
   }
 
   private void constraintProblem(
@@ -439,7 +451,7 @@ final class StructureMatcher {
   private static String describe(StructureNode node) {
     return switch (node) {
       case RecordRef ref -> "record " + ref.recordId();
-      case GroupNode group -> "group '" + group.name() + "'";
+      case GroupNode groupNode -> group(groupNode.name());
       case ChoiceNode choice -> "one of '" + choice.name() + "'";
     };
   }
