@@ -24,12 +24,15 @@ import de.frachtwerk.fortras4j.schema.FieldElement;
 import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import de.frachtwerk.fortras4j.schema.RecordDefinition;
 import de.frachtwerk.fortras4j.schema.RepeatDefinition;
+import de.frachtwerk.fortras4j.schema.ValueRule;
 import de.frachtwerk.fortras4j.type.FieldValueException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Reads one line into a {@link Record}; problems are collected, never thrown. */
 final class LineParser {
@@ -62,6 +65,7 @@ final class LineParser {
       return Record.unknown(line, lineNumber);
     }
 
+    int problemsBefore = problems.size();
     Map<String, Object> values = new LinkedHashMap<>();
     for (FieldElement element : definition.elements()) {
       switch (element) {
@@ -74,7 +78,39 @@ final class LineParser {
             values.put(repeat.name(), parseBlocks(repeat, line, lineNumber, definition, problems));
       }
     }
+    checkRules(schema, definition, values, lineNumber, problems, problemsBefore);
     return Record.parsed(definition, line, lineNumber, values);
+  }
+
+  /** Skips a rule if its field or a condition field is empty or has an error on this line. */
+  private static void checkRules(
+      FortrasSchema schema,
+      RecordDefinition definition,
+      Map<String, Object> values,
+      int lineNumber,
+      List<Problem> problems,
+      int problemsBefore) {
+    List<Problem> lineProblems = problems.subList(problemsBefore, problems.size());
+    List<Problem> found = new ArrayList<>();
+    for (ValueRule rule : schema.rules(definition.id())) {
+      Set<String> fields = new HashSet<>(rule.conditionFields());
+      fields.add(rule.field());
+      boolean hasError =
+          lineProblems.stream().anyMatch(p -> p.isError() && fields.contains(p.field()));
+      if (!hasError) {
+        rule.violation(values.get(rule.field()), values)
+            .ifPresent(message ->
+                found.add(
+                    new Problem(
+                        rule.severity(),
+                        ProblemCode.UNEXPECTED_VALUE,
+                        lineNumber,
+                        definition.id(),
+                        rule.field(),
+                        message)));
+      }
+    }
+    problems.addAll(found);
   }
 
   /** Reads all blocks of a repeat; empty blocks are dropped unless {@code skipEmpty} is off. */

@@ -1,0 +1,50 @@
+# Copyright (C) 2026 Frachtwerk GmbH, Leopoldstraße 7C, 76133 Karlsruhe.
+#
+# This file is part of logistics4j.
+#
+# logistics4j is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# logistics4j is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with logistics4j. If not, see <http://www.gnu.org/licenses/>.
+
+# An invented layout for value rules and the datetime type.
+id: rules
+format: RULES
+release: "1"
+detect: "^SCN"
+maxLineLength: 40
+
+codelists:
+  kind:
+    codes: [AA, BB, CC]
+
+records:
+  SCN:
+    fields:
+      - { name: kind, start: 4, end: 5, type: code, codelist: kind }
+      - { name: hub, start: 6, end: 7 }
+      - { name: status, start: 8, end: 10, type: integer, null: blanks }
+      - { name: stamp, start: 11, end: 26, type: datetime, pattern: ddMMyyyyHHmmssSS }
+
+rules:
+  status:
+    record: SCN
+    field: status
+    severity: warning
+    cases:
+      - when: { kind: AA }
+        allowed: [100, 101]
+      - when: { kind: BB, hub: [X1, X2] }
+        allowed: [200]
+    otherwise: [1, 2]
+
+structure:
+  - { record: SCN, occurs: "1..*" }

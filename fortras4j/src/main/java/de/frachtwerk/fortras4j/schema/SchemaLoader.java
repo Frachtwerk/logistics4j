@@ -19,6 +19,7 @@
 
 package de.frachtwerk.fortras4j.schema;
 
+import de.frachtwerk.fortras4j.Severity;
 import de.frachtwerk.fortras4j.schema.StructureNode.ChoiceNode;
 import de.frachtwerk.fortras4j.schema.StructureNode.GroupNode;
 import de.frachtwerk.fortras4j.schema.StructureNode.RecordRef;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -63,8 +65,10 @@ final class SchemaLoader {
           "defaults",
           "codelists",
           "records",
+          "rules",
           "structure");
-  private static final Set<String> MERGED_MAPS = Set.of("defaults", "codelists", "records");
+  private static final Set<String> MERGED_MAPS =
+      Set.of("defaults", "codelists", "records", "rules");
   private static final Set<String> FIELD_KEYS =
       Set.of("name", "start", "end", "length", "type", "description", "default", "required");
   private static final Set<String> REPEAT_KEYS =
@@ -76,6 +80,9 @@ final class SchemaLoader {
   private static final Set<String> GROUP_KEYS =
       Set.of("group", "occurs", "key", "keyMismatch", "constraints", "children");
   private static final Set<String> CHOICE_KEYS = Set.of("choice", "occurs", "options");
+  private static final Set<String> RULE_KEYS =
+      Set.of("record", "field", "severity", "description", "cases", "otherwise");
+  private static final Set<String> CASE_KEYS = Set.of("when", "allowed");
 
   private SchemaLoader() {}
 
@@ -211,6 +218,7 @@ final class SchemaLoader {
       typeDefaults = parseDefaults(root.get("defaults"));
       parseCodeLists(root.get("codelists"));
       parseRecords(root.get("records"));
+      Map<String, ValueRule> rules = parseRules(root.get("rules"));
       GroupNode structure = parseRoot(root.get("structure"));
 
       if (errors.size() > errorsBefore) {
@@ -227,7 +235,8 @@ final class SchemaLoader {
           passthrough,
           records,
           codeLists,
-          structure);
+          structure,
+          rules);
     }
 
     // ---- defaults and code lists ------------------------------------------------------------
@@ -741,6 +750,171 @@ final class SchemaLoader {
         case RecordRef r -> {
           // nothing to check
         }
+      }
+    }
+
+    // ---- value rules ----------------------------------------------------------------------------
+
+    /** Entries set to {@code null} are skipped, so an extending layout can drop a rule. */
+    private Map<String, ValueRule> parseRules(JsonNode node) {
+      Map<String, ValueRule> rules = new LinkedHashMap<>();
+      if (node == null) {
+        return rules;
+      }
+      if (!node.isObject()) {
+        error("rules", "must be a mapping");
+        return rules;
+      }
+      for (Map.Entry<String, JsonNode> entry : node.properties()) {
+        if (!entry.getValue().isNull()) {
+          ValueRule rule = parseRule(entry.getKey(), entry.getValue());
+          if (rule != null) {
+            rules.put(entry.getKey(), rule);
+          }
+        }
+      }
+      return rules;
+    }
+
+    private ValueRule parseRule(String name, JsonNode node) {
+      String path = "rules." + name;
+      if (!node.isObject()) {
+        error(path, "must be a mapping");
+        return null;
+      }
+      unknownKeys(node, RULE_KEYS, path);
+      String recordId = text(node.get("record"));
+      RecordDefinition definition = recordId == null ? null : records.get(recordId);
+      if (definition == null) {
+        error(
+            path + ".record",
+            recordId == null ? "is required" : "unknown record '" + recordId + "'");
+        return null;
+      }
+      String field = text(node.get("field"));
+      FieldDefinition target = plainField(definition, field, path + ".field");
+      if (target == null) {
+        return null;
+      }
+      Severity severity = severity(node.get("severity"), path + ".severity");
+      List<ValueRule.Case> cases = parseCases(node.get("cases"), definition, target, path);
+      Set<Object> otherwise =
+          node.has("otherwise") ? values(node.get("otherwise"), target, path + ".otherwise") : null;
+      if (!node.has("cases") && !node.has("otherwise")) {
+        error(path, "needs 'cases' or 'otherwise'");
+        return null;
+      }
+      return new ValueRule(name, recordId, field, severity, cases, otherwise);
+    }
+
+    private List<ValueRule.Case> parseCases(
+        JsonNode node, RecordDefinition definition, FieldDefinition target, String path) {
+      List<ValueRule.Case> cases = new ArrayList<>();
+      if (node == null) {
+        return cases;
+      }
+      if (!node.isArray()) {
+        error(path + ".cases", "must be a list");
+        return cases;
+      }
+      int index = 0;
+      for (JsonNode c : node) {
+        String casePath = path + ".cases[" + index++ + "]";
+        if (!c.isObject() || !c.has("when") || !c.has("allowed")) {
+          error(casePath, "needs 'when' and 'allowed'");
+          continue;
+        }
+        unknownKeys(c, CASE_KEYS, casePath);
+        Map<String, Set<Object>> when = parseWhen(c.get("when"), definition, target, casePath);
+        Set<Object> allowed = values(c.get("allowed"), target, casePath + ".allowed");
+        if (when != null && allowed != null) {
+          cases.add(new ValueRule.Case(when, allowed));
+        }
+      }
+      return cases;
+    }
+
+    private Map<String, Set<Object>> parseWhen(
+        JsonNode node, RecordDefinition definition, FieldDefinition target, String path) {
+      if (!node.isObject() || node.isEmpty()) {
+        error(path + ".when", "must map at least one field to its values");
+        return null;
+      }
+      Map<String, Set<Object>> when = new LinkedHashMap<>();
+      for (Map.Entry<String, JsonNode> entry : node.properties()) {
+        String fieldPath = path + ".when." + entry.getKey();
+        if (entry.getKey().equals(target.name())) {
+          error(fieldPath, "a rule cannot depend on its own field");
+          return null;
+        }
+        FieldDefinition condition = plainField(definition, entry.getKey(), fieldPath);
+        Set<Object> values =
+            condition == null ? null : values(entry.getValue(), condition, fieldPath);
+        if (values == null) {
+          return null;
+        }
+        when.put(entry.getKey(), values);
+      }
+      return when;
+    }
+
+    /** A field of the record outside of repeat blocks. */
+    private FieldDefinition plainField(RecordDefinition definition, String name, String path) {
+      if (name == null) {
+        error(path, "is required");
+        return null;
+      }
+      FieldElement element = definition.element(name);
+      if (element instanceof FieldDefinition field) {
+        return field;
+      }
+      boolean inBlock =
+          definition.elements().stream()
+              .anyMatch(e -> e instanceof RepeatDefinition r && r.field(name) != null);
+      String where = inBlock ? " outside of repeat blocks" : "";
+      error(path, "'" + name + "' is no field of record " + definition.id() + where);
+      return null;
+    }
+
+    /** A scalar or a list, each value coerced by the field's type. */
+    private Set<Object> values(JsonNode node, FieldDefinition field, String path) {
+      List<JsonNode> items = new ArrayList<>();
+      if (node.isArray()) {
+        node.forEach(items::add);
+      } else {
+        items.add(node);
+      }
+      Set<Object> values = new LinkedHashSet<>();
+      for (JsonNode item : items) {
+        Object value;
+        try {
+          value = field.codec().coerce(toJava(item));
+        } catch (RuntimeException e) {
+          error(path, e.getMessage());
+          return null;
+        }
+        if (value == null) {
+          error(path, "contains an empty value");
+          return null;
+        }
+        values.add(value);
+      }
+      if (values.isEmpty()) {
+        error(path, "must not be empty");
+        return null;
+      }
+      return values;
+    }
+
+    private Severity severity(JsonNode node, String path) {
+      if (node == null) {
+        return Severity.ERROR;
+      }
+      try {
+        return Severity.valueOf(node.asString().trim().toUpperCase(Locale.ROOT));
+      } catch (IllegalArgumentException e) {
+        error(path, "must be 'error' or 'warning'");
+        return Severity.ERROR;
       }
     }
 
