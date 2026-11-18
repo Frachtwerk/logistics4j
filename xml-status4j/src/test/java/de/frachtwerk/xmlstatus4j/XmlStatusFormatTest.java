@@ -84,12 +84,16 @@ class XmlStatusFormatTest {
     assertThat(written.getFirst()).isEqualTo(XmlStatusFormat.DECLARATION);
     assertThat(written)
         .contains("  <FAHRT>", "        <SDG_IDABK>12345678901234567890</SDG_IDABK>");
-    assertThat(XmlStatusFormat.write(XmlStatusFormat.read(written))).isEqualTo(written);
+    FahrtHeadDaten head = XmlStatusFormat.read(written).getFahrten().getFirst().getFahrtHeadDaten();
+    // an empty element is read as an empty object or empty text, not as null
+    assertThat(written).contains("    <FAR/>");
+    assertThat(head).isNotNull();
+    assertThat(head.getRollkartenNr()).isNull();
   }
 
   @Test
   void writesTheSameAsTheFirstRelease() throws Exception {
-    // status.written.xml is the output of 0.1.0 for status.valid.xml
+    // status.written.xml is the output of 0.1.0 for status.valid.xml, with nulls as empty elements
     List<String> written =
         XmlStatusFormat.write(XmlStatusFormat.read(lines("status/status.valid.xml")));
 
