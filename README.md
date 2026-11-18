@@ -157,7 +157,9 @@ registriert man mit `FortrasSchemas.builder().type(...)`.
 
 - `null`: leerer Wert als `blanks` oder `zeros`; `date` und `time` lesen lauter Nullen immer als
   leer, `datetime` nur mit `null: zeros`
-- `overflow`: zu langer Wert führt zu `error`, `truncate` (Text) oder `max` (Zahlen: lauter Neunen)
+- `overflow`: zu langer Wert führt zu `error`, `truncate` (Text) oder `max` (Zahlen: lauter Neunen); Standard ist
+  `truncate` für `string`, sonst `error`. Ein eigenes `maxLength` bei Text ist eine harte Grenze und wird auch bei
+  `truncate` als `VALUE_TOO_LONG` gemeldet
 - `valuePrefix`: wird beim Schreiben vorangestellt und beim Lesen entfernt, z. B. ein Partnerpräfix vor Depotnummern
 
 > **YAML-Falle:** Rein numerische Codes wie `100` müssen in Anführungszeichen stehen, sonst

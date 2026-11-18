@@ -31,8 +31,9 @@ import java.util.regex.Pattern;
  * {@code currency} (ISO 4217).
  *
  * <p>Options: {@code trim} ({@code both}, {@code right}, {@code none}); {@code maxLength} (a
- * maximum length below the field length); {@code valuePrefix} (written in front of the value and
- * removed when reading, e.g. a partner prefix); {@code codelist} and {@code strict} for codes.
+ * maximum length below the field length, always an error when exceeded, also with {@code overflow:
+ * truncate}); {@code valuePrefix} (written in front of the value and removed when reading, e.g. a
+ * partner prefix); {@code codelist} and {@code strict} for codes.
  */
 final class TextCodec implements FieldCodec {
 
@@ -95,10 +96,15 @@ final class TextCodec implements FieldCodec {
           throw new IllegalArgumentException("overflow 'max' is only allowed for numbers");
         }
         Trim trimMode = options.enumValue("trim", Trim.class, Trim.BOTH);
+        boolean ownMaxLength = options.has("maxLength");
         int allowedLength = options.integer("maxLength", context.length());
         if (allowedLength < 1 || allowedLength > context.length()) {
           throw new IllegalArgumentException(
               "maxLength must be between 1 and the field length " + context.length());
+        }
+        if (!ownMaxLength && textLayout.overflow() == Layout.Overflow.TRUNCATE) {
+          // without an own maxLength the field length applies, and overflow truncate cuts to it
+          allowedLength = Integer.MAX_VALUE;
         }
         String prefix = options.string("valuePrefix", null);
         CodeList codes = null;
