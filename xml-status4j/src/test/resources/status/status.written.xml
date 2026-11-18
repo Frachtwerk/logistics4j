@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <FAR_DATA>
   <FAHRT>
-    <FAR xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+    <FAR/>
     <SDG>
       <POSI>
         <BCD>
@@ -37,34 +37,34 @@
       </POSI>
       <SDG_HEAD>
         <EMP>
-          <ANSP xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <ENLA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <IDNR xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <ANSP/>
+          <ENLA/>
+          <IDNR/>
           <LAND>De</LAND>
-          <MAIL xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <MAIL/>
           <NAM1>EmpfÃ¤nger GbR</NAM1>
           <NAM2>EmpfÃ¤nger GbR</NAM2>
           <ORT>Musterhausen</ORT>
           <PLZ>67890</PLZ>
           <STHS>HauptstraÃ&#x9f;e 100</STHS>
-          <TELE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <TELE/>
         </EMP>
-        <GGVS xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-        <LDM xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-        <NAC xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <GGVS/>
+        <LDM/>
+        <NAC/>
         <SDG_ABKO>910123</SDG_ABKO>
         <SDG_ADAT>20240101</SDG_ADAT>
-        <SDG_BEME xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_BEME/>
         <SDG_EMKO>Dummy GmbH, D-12345 Musterstadt</SDG_EMKO>
         <SDG_IDABK>12345678901234567890</SDG_IDABK>
-        <SDG_IDGV xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_IDGV/>
         <SDG_KOOP>KOP</SDG_KOOP>
-        <SDG_LADZ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_LADZ/>
         <SDG_LAUID>ZU</SDG_LAUID>
-        <SDG_LBEG xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-        <SDG_LDAT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-        <SDG_LEND xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-        <SDG_LZEI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <SDG_LBEG/>
+        <SDG_LDAT/>
+        <SDG_LEND/>
+        <SDG_LZEI/>
         <SDG_SDID>GEX111222333</SDG_SDID>
         <SDG_STOP>1</SDG_STOP>
         <SDG_TYP>G</SDG_TYP>
@@ -75,34 +75,34 @@
         </SSU>
         <STA>
           <STA_CODE>300</STA_CODE>
-          <STA_GRUP xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_GRUP/>
           <STA_LAT>40.1234567890</STA_LAT>
           <STA_LNG>16.1234567890</STA_LNG>
           <STA_QUID>20241014</STA_QUID>
           <STA_QUIG>MIO</STA_QUIG>
           <STA_QUIZ>131133</STA_QUIZ>
           <STA_TEXT></STA_TEXT>
-          <STA_TSBI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <STA_TSEI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <STA_TSSO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_TSBI/>
+          <STA_TSEI/>
+          <STA_TSSO/>
           <STA_UNTE></STA_UNTE>
           <STA_UNTE_FORM></STA_UNTE_FORM>
-          <STA_VCOD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <STA_VTEX xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <STA_WAZE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <STA_VCOD/>
+          <STA_VTEX/>
+          <STA_WAZE/>
         </STA>
         <VER>
-          <BELA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
-          <IDNR xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <BELA/>
+          <IDNR/>
           <LAND>DE</LAND>
-          <MAIL xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <MAIL/>
           <NAM1>Versender GmbH</NAM1>
           <NAM2></NAM2>
           <ORT>Musterstadt</ORT>
           <PLZ>12345</PLZ>
-          <REFE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <REFE/>
           <STHS>MusterstraÃ&#x9f;e 1</STHS>
-          <TELE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+          <TELE/>
         </VER>
       </SDG_HEAD>
     </SDG>

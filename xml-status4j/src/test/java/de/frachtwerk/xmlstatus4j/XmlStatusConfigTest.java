@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Doctype;
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.LineBreaks;
+import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Nulls;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +43,7 @@ class XmlStatusConfigTest {
     assertThat(config.encoding()).isEqualTo(StandardCharsets.ISO_8859_1);
     assertThat(config.declaration()).contains(XmlStatusFormat.DECLARATION);
     assertThat(config.indent()).isTrue();
+    assertThat(config.nulls()).isEqualTo(Nulls.EMPTY);
     assertThat(config.lineBreaks()).isEqualTo(LineBreaks.STRIP);
     assertThat(config.doctype()).isEqualTo(Doctype.IGNORE);
     assertThat(config.rootElement()).isEqualTo("FAR_DATA");
@@ -103,6 +105,7 @@ class XmlStatusConfigTest {
             XmlStatusConfig.builder()
                 .encoding(Charset.forName("windows-1252"))
                 .indent(false)
+                .nulls(Nulls.OMIT)
                 .lineBreaks(LineBreaks.SPACE)
                 .doctype(Doctype.REJECT)
                 .rootElement("STATUS")

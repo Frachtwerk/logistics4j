@@ -259,6 +259,7 @@ FahrDaten read = XmlStatusCodec.of(XmlStatusConfig.load(Path.of("status.yaml")))
 encoding: UTF-8           # Zeichensatz der Datei, Standard ISO-8859-1
 declaration: auto         # auto (aus dem Zeichensatz), none oder die Deklaration selbst
 indent: true              # eingerückt (Standard) oder kompakt in einer Zeile
+nulls: empty              # null-Werte: leeres Element (Standard), nil (xsi:nil) oder omit (weglassen)
 lineBreaks: strip         # Zeilenumbrüche in Textwerten: strip (Standard), keep oder space
 doctype: ignore           # DOCTYPE beim Lesen: ignore (Standard) oder reject
 rootElement: FAR_DATA     # Name des Wurzelelements
@@ -271,6 +272,7 @@ Alle Schlüssel sind optional; unbekannte Schlüssel und ungültige Werte meldet
 Java-Namen (`UTF-8`, `IBM850`, `windows-1252`); nur ISO-8859-1 behält die Schreibweise `iso-8859-1`
 der Version 0.1.0. `write` liefert Zeilen, die der Aufrufer kodiert; `read(InputStream)` und
 `write(fahrDaten, OutputStream)` nutzen den konfigurierten Zeichensatz (Zeilenende CR LF).
+Beim Lesen wird ein leeres Element zu leerem Text bzw. einem leeren Objekt, nicht zu `null`.
 
 ## Build
 

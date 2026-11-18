@@ -18,6 +18,7 @@
 encoding: windows-1252
 declaration: auto
 indent: false
+nulls: omit
 lineBreaks: space
 doctype: reject
 rootElement: STATUS

@@ -55,6 +55,7 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
  * encoding: UTF-8           # charset of the file, default ISO-8859-1
  * declaration: auto         # auto (from the encoding), none, or the declaration itself
  * indent: true              # indented (default) or compact output
+ * nulls: empty              # null values: empty element (default), nil (xsi:nil) or omit
  * lineBreaks: strip         # line breaks in text values: strip (default), keep or space
  * doctype: ignore           # DOCTYPE on reading: ignore (default) or reject
  * rootElement: FAR_DATA     # name of the root element
@@ -74,6 +75,16 @@ public final class XmlStatusConfig {
     KEEP,
     /** Replace each line break and the blanks around it by one space and trim the value. */
     SPACE
+  }
+
+  /** How writing renders a null value. */
+  public enum Nulls {
+    /** An empty element, e.g. {@code <FAR_TSBE/>}. */
+    EMPTY,
+    /** An empty element with {@code xsi:nil="true"}. */
+    NIL,
+    /** No element. */
+    OMIT
   }
 
   /** What reading does with a {@code DOCTYPE} declaration. */
@@ -112,6 +123,7 @@ public final class XmlStatusConfig {
   private static final String KEY_ENCODING = "encoding";
   private static final String KEY_DECLARATION = "declaration";
   private static final String KEY_INDENT = "indent";
+  private static final String KEY_NULLS = "nulls";
   private static final String KEY_LINE_BREAKS = "lineBreaks";
   private static final String KEY_DOCTYPE = "doctype";
   private static final String KEY_ROOT_ELEMENT = "rootElement";
@@ -121,6 +133,7 @@ public final class XmlStatusConfig {
           KEY_ENCODING,
           KEY_DECLARATION,
           KEY_INDENT,
+          KEY_NULLS,
           KEY_LINE_BREAKS,
           KEY_DOCTYPE,
           KEY_ROOT_ELEMENT,
@@ -131,6 +144,7 @@ public final class XmlStatusConfig {
   private final Charset encoding;
   private final String declaration;
   private final boolean indent;
+  private final Nulls nulls;
   private final LineBreaks lineBreaks;
   private final Doctype doctype;
   private final String rootElement;
@@ -140,13 +154,14 @@ public final class XmlStatusConfig {
     this.encoding = builder.encoding;
     this.declaration = builder.resolveDeclaration();
     this.indent = builder.indent;
+    this.nulls = builder.nulls;
     this.lineBreaks = builder.lineBreaks;
     this.doctype = builder.doctype;
     this.rootElement = builder.rootElement;
     this.elements = Map.copyOf(builder.elements);
   }
 
-  /** The behaviour of 0.1.0: ISO-8859-1, indented, line breaks stripped, DOCTYPE ignored. */
+  /** ISO-8859-1, indented, nulls as empty elements, line breaks stripped, DOCTYPE ignored. */
   public static XmlStatusConfig defaults() {
     return DEFAULTS;
   }
@@ -167,6 +182,7 @@ public final class XmlStatusConfig {
       builder.declarationMode = DeclarationMode.AUTO;
     }
     builder.indent = indent;
+    builder.nulls = nulls;
     builder.lineBreaks = lineBreaks;
     builder.doctype = doctype;
     builder.rootElement = rootElement;
@@ -235,6 +251,10 @@ public final class XmlStatusConfig {
     return indent;
   }
 
+  public Nulls nulls() {
+    return nulls;
+  }
+
   public LineBreaks lineBreaks() {
     return lineBreaks;
   }
@@ -258,6 +278,7 @@ public final class XmlStatusConfig {
         && encoding.equals(other.encoding)
         && Objects.equals(declaration, other.declaration)
         && indent == other.indent
+        && nulls == other.nulls
         && lineBreaks == other.lineBreaks
         && doctype == other.doctype
         && rootElement.equals(other.rootElement)
@@ -266,7 +287,8 @@ public final class XmlStatusConfig {
 
   @Override
   public int hashCode() {
-    return Objects.hash(encoding, declaration, indent, lineBreaks, doctype, rootElement, elements);
+    return Objects.hash(
+        encoding, declaration, indent, nulls, lineBreaks, doctype, rootElement, elements);
   }
 
   @Override
@@ -277,6 +299,8 @@ public final class XmlStatusConfig {
         + declaration
         + ", indent="
         + indent
+        + ", nulls="
+        + nulls
         + ", lineBreaks="
         + lineBreaks
         + ", doctype="
@@ -308,6 +332,7 @@ public final class XmlStatusConfig {
     private DeclarationMode declarationMode = DeclarationMode.AUTO;
     private String declaration;
     private boolean indent = true;
+    private Nulls nulls = Nulls.EMPTY;
     private LineBreaks lineBreaks = LineBreaks.STRIP;
     private Doctype doctype = Doctype.IGNORE;
     private String rootElement = DEFAULT_ROOT_ELEMENT;
@@ -349,6 +374,11 @@ public final class XmlStatusConfig {
     /** Indented output (default) or the document in one line after the declaration. */
     public Builder indent(boolean indent) {
       this.indent = indent;
+      return this;
+    }
+
+    public Builder nulls(Nulls nulls) {
+      this.nulls = Objects.requireNonNull(nulls, KEY_NULLS);
       return this;
     }
 
@@ -461,6 +491,7 @@ public final class XmlStatusConfig {
       text(root, KEY_ENCODING).ifPresent(this::encoding);
       text(root, KEY_DECLARATION).ifPresent(this::declaration);
       bool(root, KEY_INDENT).ifPresent(builder::indent);
+      enumValue(root, KEY_NULLS, Nulls.class).ifPresent(builder::nulls);
       enumValue(root, KEY_LINE_BREAKS, LineBreaks.class).ifPresent(builder::lineBreaks);
       enumValue(root, KEY_DOCTYPE, Doctype.class).ifPresent(builder::doctype);
       text(root, KEY_ROOT_ELEMENT).ifPresent(builder::rootElement);

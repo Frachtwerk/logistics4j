@@ -19,6 +19,8 @@
 
 package de.frachtwerk.xmlstatus4j;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +39,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.dataformat.xml.XmlWriteFeature;
 
 /**
  * Reads and writes XML status files with a {@link XmlStatusConfig}. Immutable and thread-safe; one
@@ -83,10 +86,17 @@ public final class XmlStatusCodec {
     if (config.indent()) {
       writerBuilder.enable(SerializationFeature.INDENT_OUTPUT);
     }
+    switch (config.nulls()) {
+      case EMPTY -> writerBuilder.disable(XmlWriteFeature.WRITE_NULLS_AS_XSI_NIL);
+      case NIL -> writerBuilder.enable(XmlWriteFeature.WRITE_NULLS_AS_XSI_NIL);
+      case OMIT ->
+          writerBuilder.changeDefaultPropertyInclusion(
+              inclusion -> JsonInclude.Value.construct(Include.NON_NULL, Include.NON_NULL));
+    }
     this.writer = writerBuilder.build();
   }
 
-  /** With the {@linkplain XmlStatusConfig#defaults() defaults}, the behaviour of 0.1.0. */
+  /** With the {@linkplain XmlStatusConfig#defaults() defaults}. */
   public static XmlStatusCodec create() {
     return DEFAULT;
   }

@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Doctype;
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.LineBreaks;
+import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Nulls;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,7 +51,7 @@ class XmlStatusCodecTest {
 
   @Test
   void writesByteForByteWhatTheFirstReleaseWrote() throws Exception {
-    // status.written.xml is the output of 0.1.0 for status.valid.xml
+    // status.written.xml is the output of 0.1.0 for status.valid.xml, with nulls as empty elements
     FahrDaten fahrDaten = XmlStatusFormat.read(lines("status/status.valid.xml"));
     List<String> expected = lines("status/status.written.xml");
 
@@ -88,6 +89,33 @@ class XmlStatusCodecTest {
     assertThat(compact).hasSize(2);
     assertThat(compact.get(0)).isEqualTo(XmlStatusFormat.DECLARATION);
     assertThat(compact.get(1)).startsWith("<FAR_DATA><FAHRT><").endsWith("</FAHRT></FAR_DATA>");
+  }
+
+  @Test
+  void writesNullsAsConfigured() {
+    FahrtHeadDaten head = new FahrtHeadDaten();
+    head.setRollkartenNr("123");
+    Fahrt fahrt = new Fahrt();
+    fahrt.setFahrtHeadDaten(head);
+    FahrDaten fahrDaten = new FahrDaten();
+    fahrDaten.setFahrten(List.of(fahrt));
+
+    String empty = String.join("\n", XmlStatusFormat.write(fahrDaten));
+    String nil =
+        String.join(
+            "\n",
+            XmlStatusCodec.of(XmlStatusConfig.builder().nulls(Nulls.NIL).build()).write(fahrDaten));
+    String omitted =
+        String.join(
+            "\n",
+            XmlStatusCodec.of(XmlStatusConfig.builder().nulls(Nulls.OMIT).build())
+                .write(fahrDaten));
+
+    assertThat(empty)
+        .contains("<FAR_TSBE/>", "<FADA/>")
+        .doesNotContain("xsi", "XMLSchema-instance");
+    assertThat(nil).contains("<FAR_TSBE xmlns:xsi=", "xsi:nil=\"true\"");
+    assertThat(omitted).contains("<FAR_FAHR>123</FAR_FAHR>").doesNotContain("FAR_TSBE", "FADA");
   }
 
   @Test
@@ -149,7 +177,9 @@ class XmlStatusCodecTest {
             Charset.forName("IBM850"),
             Charset.forName("windows-1252"),
             StandardCharsets.ISO_8859_1)) {
-      XmlStatusCodec codec = codec(charset);
+      // omitted nulls read back as nulls, so writing what was read gives the same lines
+      XmlStatusCodec codec =
+          XmlStatusCodec.of(codec(charset).config().toBuilder().nulls(Nulls.OMIT).build());
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       codec.write(fahrDaten, out);
 
@@ -180,7 +210,9 @@ class XmlStatusCodecTest {
 
   @Test
   void canBeSharedBetweenThreads() throws Exception {
-    XmlStatusCodec codec = codec(StandardCharsets.UTF_8);
+    XmlStatusCodec codec =
+        XmlStatusCodec.of(
+            codec(StandardCharsets.UTF_8).config().toBuilder().nulls(Nulls.OMIT).build());
     FahrDaten fahrDaten = XmlStatusFormat.read(lines("status/status.valid.xml"));
     List<String> expected = codec.write(fahrDaten);
 
