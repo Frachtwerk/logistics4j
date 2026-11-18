@@ -6,7 +6,7 @@
 
 ### 🐞 Bug Fixes
 
-- `fortras4j`: `overflow: truncate` cuts text fields to the field length when writing instead of reporting `VALUE_TOO_LONG`; this also applies to type `string`, whose default is `truncate`. An own `maxLength` stays a hard limit and is still reported as `VALUE_TOO_LONG`
+- `fortras4j`: `overflow: truncate` (default of `string`) cuts too long text instead of reporting `VALUE_TOO_LONG`; an own `maxLength` stays a hard limit
 
 ### 🔨 Dependency Upgrades
 
