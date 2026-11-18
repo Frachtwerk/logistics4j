@@ -9,7 +9,7 @@
 ### 🐞 Bug Fixes
 
 - `fortras4j`: `overflow: truncate` (default of `string`) cuts too long text instead of reporting `VALUE_TOO_LONG`; an own `maxLength` stays a hard limit
-- `xml-status4j`: null values are written as empty elements (`<FAR_TSBE/>`) instead of `xsi:nil`, as before the extraction from the partner portal; `nulls: nil` restores the old output
+- `xml-status4j`: null values are written as empty elements instead of `xsi:nil` (`nulls: nil` keeps the old output)
 
 ### 🔨 Dependency Upgrades
 
