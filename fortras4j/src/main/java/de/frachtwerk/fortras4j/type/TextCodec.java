@@ -96,16 +96,7 @@ final class TextCodec implements FieldCodec {
           throw new IllegalArgumentException("overflow 'max' is only allowed for numbers");
         }
         Trim trimMode = options.enumValue("trim", Trim.class, Trim.BOTH);
-        boolean ownMaxLength = options.has("maxLength");
-        int allowedLength = options.integer("maxLength", context.length());
-        if (allowedLength < 1 || allowedLength > context.length()) {
-          throw new IllegalArgumentException(
-              "maxLength must be between 1 and the field length " + context.length());
-        }
-        if (!ownMaxLength && textLayout.overflow() == Layout.Overflow.TRUNCATE) {
-          // without an own maxLength the field length applies, and overflow truncate cuts to it
-          allowedLength = Integer.MAX_VALUE;
-        }
+        int allowedLength = maxLength(options, context, textLayout);
         String prefix = options.string("valuePrefix", null);
         CodeList codes = null;
         boolean strictCodes = false;
@@ -123,6 +114,17 @@ final class TextCodec implements FieldCodec {
         return new TextCodec(kind, textLayout, trimMode, allowedLength, prefix, codes, strictCodes);
       }
     };
+  }
+
+  private static int maxLength(FieldOptions options, FieldContext context, Layout layout) {
+    boolean own = options.has("maxLength");
+    int maxLength = options.integer("maxLength", context.length());
+    if (maxLength < 1 || maxLength > context.length()) {
+      throw new IllegalArgumentException(
+          "maxLength must be between 1 and the field length " + context.length());
+    }
+    // without an own maxLength the field length applies, and overflow truncate cuts to it
+    return own || layout.overflow() != Layout.Overflow.TRUNCATE ? maxLength : Integer.MAX_VALUE;
   }
 
   @Override
