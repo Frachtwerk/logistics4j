@@ -1,6 +1,6 @@
 # Changelog
 
-## Version `0.3.0-SNAPSHOT`
+## Version `0.3.0`
 
 ### 🌟 Features
 
@@ -12,6 +12,8 @@
 - `xml-status4j`: null values are written as empty elements instead of `xsi:nil` (`nulls: nil` keeps the old output)
 
 ### 🔨 Dependency Upgrades
+
+- Upgraded softprops/action-gh-release from 3.0.3 to 3.0.4
 
 ## Version `0.2.0`
 
