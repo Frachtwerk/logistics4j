@@ -4,6 +4,8 @@
 
 ### 🌟 Features
 
+- `fortras4j`: text option `control` (`replace`, `error`, `keep`) for control characters, line and paragraph separators when writing; `replace` (default) writes a space, now also for tabs and other control characters (line breaks as before)
+
 ### 🐞 Bug Fixes
 
 ### 🔨 Dependency Upgrades

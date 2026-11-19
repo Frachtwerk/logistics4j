@@ -24,6 +24,7 @@ import de.frachtwerk.fortras4j.Severity;
 import de.frachtwerk.fortras4j.schema.CodeList;
 import java.util.Currency;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -43,6 +44,12 @@ final class TextCodec implements FieldCodec {
     NONE
   }
 
+  enum Control {
+    REPLACE,
+    ERROR,
+    KEEP
+  }
+
   enum Kind {
     STRING,
     CODE,
@@ -50,10 +57,12 @@ final class TextCodec implements FieldCodec {
   }
 
   private static final Pattern LINE_BREAK = Pattern.compile("\\R");
+  private static final Pattern CONTROL = Pattern.compile("[\\p{Cc}\\p{Zl}\\p{Zp}]");
 
   private final Kind kind;
   private final Layout layout;
   private final Trim trim;
+  private final Control control;
   private final int maxLength;
   private final String valuePrefix;
   private final CodeList codeList;
@@ -63,6 +72,7 @@ final class TextCodec implements FieldCodec {
       Kind kind,
       Layout layout,
       Trim trim,
+      Control control,
       int maxLength,
       String valuePrefix,
       CodeList codeList,
@@ -70,6 +80,7 @@ final class TextCodec implements FieldCodec {
     this.kind = kind;
     this.layout = layout;
     this.trim = trim;
+    this.control = control;
     this.maxLength = maxLength;
     this.valuePrefix = valuePrefix;
     this.codeList = codeList;
@@ -96,6 +107,7 @@ final class TextCodec implements FieldCodec {
           throw new IllegalArgumentException("overflow 'max' is only allowed for numbers");
         }
         Trim trimMode = options.enumValue("trim", Trim.class, Trim.BOTH);
+        Control controlMode = options.enumValue("control", Control.class, Control.REPLACE);
         int allowedLength = maxLength(options, context, textLayout);
         String prefix = options.string("valuePrefix", null);
         CodeList codes = null;
@@ -111,7 +123,8 @@ final class TextCodec implements FieldCodec {
           }
           strictCodes = options.bool("strict", codes.strict());
         }
-        return new TextCodec(kind, textLayout, trimMode, allowedLength, prefix, codes, strictCodes);
+        return new TextCodec(
+            kind, textLayout, trimMode, controlMode, allowedLength, prefix, codes, strictCodes);
       }
     };
   }
@@ -155,12 +168,33 @@ final class TextCodec implements FieldCodec {
     if (value == null) {
       return layout.empty(length);
     }
-    String text = LINE_BREAK.matcher(value.toString()).replaceAll(" ");
+    String text = withoutControl(value.toString());
     validate(text, true);
     if (valuePrefix != null) {
       text = valuePrefix + text;
     }
     return layout.fit(text, length, width);
+  }
+
+  /** A line break such as CR LF becomes a single space, every other control character one. */
+  private String withoutControl(String text) {
+    return switch (control) {
+      case REPLACE -> CONTROL.matcher(LINE_BREAK.matcher(text).replaceAll(" ")).replaceAll(" ");
+      case ERROR -> {
+        Matcher matcher = CONTROL.matcher(text);
+        if (matcher.find()) {
+          throw new FieldValueException(
+              ProblemCode.INVALID_VALUE,
+              Severity.ERROR,
+              String.format(
+                  "value contains the control character U+%04X at position %d",
+                  (int) text.charAt(matcher.start()), matcher.start() + 1),
+              text);
+        }
+        yield text;
+      }
+      case KEEP -> text;
+    };
   }
 
   @Override

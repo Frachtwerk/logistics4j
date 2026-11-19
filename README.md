@@ -142,7 +142,7 @@ Positionen sind 1-basiert und inklusiv wie in den Satzartbeschreibungen. Statt `
 
 | Typ | Java-Wert | Optionen (zusätzlich zu `align`, `pad`, `null`, `overflow`) |
 |---|---|---|
-| `string` (Standard) | `String` | `trim` (both/right/none), `maxLength`, `valuePrefix` |
+| `string` (Standard) | `String` | `trim` (both/right/none), `maxLength`, `valuePrefix`, `control` |
 | `code` | `String` | `codelist`, `strict`, wie `string` |
 | `currency` | `String` | ISO 4217 |
 | `integer` | `Long` | rechtsbündig, mit Nullen aufgefüllt |
@@ -159,6 +159,9 @@ registriert man mit `FortrasSchemas.builder().type(...)`.
   leer, `datetime` nur mit `null: zeros`
 - `overflow`: zu langer Wert führt zu `error`, `truncate` (Text) oder `max` (Zahlen: lauter Neunen); Standard
   `truncate` bei `string`, sonst `error`. Ein eigenes `maxLength` gilt auch bei `truncate` als harte Grenze
+- `control`: Steuerzeichen sowie Zeilen- und Absatztrenner in Textwerten beim Schreiben; `replace` (Standard)
+  schreibt ein Leerzeichen (ein Zeilenumbruch wie CR LF wird zu einem), `error` meldet `INVALID_VALUE`, `keep`
+  schreibt sie unverändert
 - `valuePrefix`: wird beim Schreiben vorangestellt und beim Lesen entfernt, z. B. ein Partnerpräfix vor Depotnummern
 
 > **YAML-Falle:** Rein numerische Codes wie `100` müssen in Anführungszeichen stehen, sonst
