@@ -32,12 +32,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Reads FORTRAS files into {@link FortrasDocument}s. Immutable and thread-safe; the layouts are
  * taken from the {@link SchemaSource} on every call, so reloaded layouts apply immediately.
  */
 public final class FortrasReader {
+
+  private static final Pattern LINE_END = Pattern.compile("\\R+\\z");
 
   private final SchemaSource source;
   private final boolean failOnError;
@@ -78,9 +81,12 @@ public final class FortrasReader {
     return width;
   }
 
-  /** Detects the layout from the first line. */
+  /**
+   * Detects the layout from the first line. Line terminators left at the end of a line (e.g. CR
+   * after splitting at LF) are removed, as are empty lines at the end.
+   */
   public FortrasDocument read(List<String> lines) {
-    List<String> content = withoutTrailingEmptyLines(lines);
+    List<String> content = withoutTrailingEmptyLines(withoutLineEnds(lines));
     if (content.isEmpty()) {
       throw noSchema("the file is empty");
     }
@@ -94,7 +100,7 @@ public final class FortrasReader {
   }
 
   public FortrasDocument read(List<String> lines, String schemaId) {
-    return read(withoutTrailingEmptyLines(lines), source.schemas().get(schemaId));
+    return read(withoutTrailingEmptyLines(withoutLineEnds(lines)), source.schemas().get(schemaId));
   }
 
   public FortrasDocument read(Path file, Charset charset) {
@@ -113,11 +119,13 @@ public final class FortrasReader {
     }
   }
 
+  /** Reads all lines with {@code schema}; line terminators at the end of a line are removed. */
   public FortrasDocument read(List<String> lines, FortrasSchema schema) {
     List<Problem> problems = new ArrayList<>();
     List<Record> records = new ArrayList<>(lines.size());
     for (int i = 0; i < lines.size(); i++) {
-      records.add(LineParser.parse(schema, lines.get(i), i + 1, problems, width));
+      String line = LINE_END.matcher(lines.get(i)).replaceFirst("");
+      records.add(LineParser.parse(schema, line, i + 1, problems, width));
     }
     Group root = new StructureMatcher(schema, records, problems).match();
     problems.sort(java.util.Comparator.comparingInt(Problem::lineNumber));
@@ -126,6 +134,10 @@ public final class FortrasReader {
       throw new FortrasException("invalid " + schema.id() + " file", document.errors());
     }
     return document;
+  }
+
+  private static List<String> withoutLineEnds(List<String> lines) {
+    return lines.stream().map(line -> LINE_END.matcher(line).replaceFirst("")).toList();
   }
 
   private static List<String> withoutTrailingEmptyLines(List<String> lines) {

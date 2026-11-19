@@ -63,7 +63,8 @@ schemas.reload();
 
 - **Verlustfreier Round-Trip:** Eine gelesene Zeile wird unverändert wieder ausgegeben;
   geänderte Felder werden in die Originalzeile eingesetzt. Nicht beschriebene Bereiche und
-  unbekannte Zeilen bleiben erhalten.
+  unbekannte Zeilen bleiben erhalten. Zeilenenden am Ende einer übergebenen Zeile (etwa ein CR nach
+  dem Trennen an LF) entfernt der Reader vorher.
 - **Fehler sammeln statt abbrechen:** Wert-, Codelisten-, Struktur- und Constraint-Verstöße
   werden als `Problem` mit stabilem `ProblemCode`, Zeile, Satzart und Feld gemeldet. Die
   Übersetzung übernimmt die Anwendung.
@@ -78,6 +79,7 @@ extends: fortras-bord100        # optional: erbt alles, überschreibt Einträge 
 format: BORD
 release: "100"
 detect: "^@@PHBORD100"          # Regex auf die erste Zeile; muss eindeutig sein
+minLineLength: 0                # optional: kürzere Zeilen melden LINE_TOO_SHORT (0 = keine Untergrenze)
 maxLineLength: 512
 trimTrailingSpaces: false       # neu geschriebene Zeilen rechts kürzen
 passthrough: "^[A-Z]99"         # Zeilen, die ungeprüft durchgereicht werden
@@ -180,7 +182,7 @@ Felder in `repeat`-Blöcken sind nicht erlaubt. Welche Werte erlaubt sind, liefe
 
 ### Zeichen oder Bytes
 
-Positionen, Längen und `maxLineLength` zählen standardmäßig Zeichen. Beziehen sich die Spalten
+Positionen, Längen, `minLineLength` und `maxLineLength` zählen standardmäßig Zeichen. Beziehen sich die Spalten
 einer UTF-8-Datei auf Bytes, belegt ein „ü“ zwei Positionen. Dafür zählen Reader und Writer auf
 Wunsch in Bytes eines Charsets:
 

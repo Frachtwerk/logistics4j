@@ -39,5 +39,7 @@ public enum ProblemCode {
   KEY_MISMATCH,
   DUPLICATE_VALUE,
   MISSING_VALUE,
-  UNEXPECTED_VALUE
+  UNEXPECTED_VALUE,
+  /** The line is shorter than the layout's {@code minLineLength}. */
+  LINE_TOO_SHORT
 }

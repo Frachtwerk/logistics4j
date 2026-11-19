@@ -44,7 +44,7 @@ final class LineParser {
     return parse(schema, line, lineNumber, problems, Width.chars());
   }
 
-  /** Positions, lengths and {@code maxLineLength} are counted by {@code width}. */
+  /** Positions, lengths and the line length limits are counted by {@code width}. */
   static Record parse(
       FortrasSchema schema, String line, int lineNumber, List<Problem> problems, Width width) {
     LineBuffer columns = LineBuffer.of(line, width);
@@ -62,6 +62,21 @@ final class LineParser {
                   + ", at most "
                   + schema.maxLineLength()
                   + " allowed"));
+    }
+    if (columns.length() < schema.minLineLength()) {
+      problems.add(
+          new Problem(
+              Severity.ERROR,
+              ProblemCode.LINE_TOO_SHORT,
+              lineNumber,
+              null,
+              null,
+              columns.length()
+                  + " "
+                  + width.unit()
+                  + ", at least "
+                  + schema.minLineLength()
+                  + " required"));
     }
     RecordDefinition definition = schema.recordFor(line);
     if (definition == null) {

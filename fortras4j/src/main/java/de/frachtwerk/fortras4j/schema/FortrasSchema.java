@@ -34,6 +34,7 @@ public final class FortrasSchema {
   private final String release;
   private final String description;
   private final Pattern detect;
+  private final int minLineLength;
   private final int maxLineLength;
   private final boolean trimTrailingSpaces;
   private final Pattern passthrough;
@@ -49,6 +50,7 @@ public final class FortrasSchema {
       String release,
       String description,
       Pattern detect,
+      int minLineLength,
       int maxLineLength,
       boolean trimTrailingSpaces,
       Pattern passthrough,
@@ -61,6 +63,7 @@ public final class FortrasSchema {
     this.release = release;
     this.description = description;
     this.detect = detect;
+    this.minLineLength = minLineLength;
     this.maxLineLength = maxLineLength;
     this.trimTrailingSpaces = trimTrailingSpaces;
     this.passthrough = passthrough;
@@ -88,6 +91,11 @@ public final class FortrasSchema {
 
   public String description() {
     return description;
+  }
+
+  /** Shortest line accepted when reading; 0 means no minimum. */
+  public int minLineLength() {
+    return minLineLength;
   }
 
   public int maxLineLength() {
