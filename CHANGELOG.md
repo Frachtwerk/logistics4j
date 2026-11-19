@@ -5,6 +5,8 @@
 ### 🌟 Features
 
 - `fortras4j`: text option `control` (`replace`, `error`, `keep`) for control characters, line and paragraph separators when writing; `replace` (default) writes a space, now also for tabs and other control characters (line breaks as before)
+- `fortras4j`: layout option `minLineLength`; shorter lines are reported as `LINE_TOO_SHORT`
+- `fortras4j`: the reader removes line terminators left at the end of a line, e.g. CR after splitting at LF
 
 ### 🐞 Bug Fixes
 

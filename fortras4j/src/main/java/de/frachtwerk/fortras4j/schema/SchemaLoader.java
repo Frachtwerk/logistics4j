@@ -65,6 +65,7 @@ final class SchemaLoader {
           "release",
           "description",
           "detect",
+          "minLineLength",
           "maxLineLength",
           "trimTrailingSpaces",
           "passthrough",
@@ -213,6 +214,10 @@ final class SchemaLoader {
     FortrasSchema build() {
       unknownKeys(root, TOP_LEVEL_KEYS, "");
       maxLineLength = intValue(root.get("maxLineLength"), "maxLineLength", 512);
+      int minLineLength = intValue(root.get("minLineLength"), "minLineLength", 0);
+      if (minLineLength < 0 || minLineLength > maxLineLength) {
+        error("minLineLength", "must be between 0 and maxLineLength " + maxLineLength);
+      }
       Pattern detect = pattern(root.get("detect"), "detect");
       if (detect == null) {
         error("detect", "a 'detect' pattern for the first line is required");
@@ -235,6 +240,7 @@ final class SchemaLoader {
           text(root.get("release")),
           text(root.get("description")),
           detect,
+          minLineLength,
           maxLineLength,
           trimTrailingSpaces,
           passthrough,
