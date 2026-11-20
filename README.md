@@ -8,7 +8,7 @@ steht. Die Engine selbst kennt keine Satzart, kein Release und keine Kooperation
 ```
 fortras4j               generische Engine (einzige Abhängigkeit: Jackson 3)
 ais-scan4j              AIS-Scans (eine Zeile je Scan), gelesen mit fortras4j
-xml-status4j            XML-Status (FAR_DATA): Objektmodell, Lesen und Schreiben
+xml-status4j            XML-Status (FAR_DATA): Objektmodell, Lesen und Schreiben (veraltet, siehe dtd4j)
 dtd4j                   XML-Dateien nach einer DTD: Lesen, Prüfen, Schreiben, Binding auf eigene Klassen
 ```
 
@@ -245,6 +245,10 @@ das per `extends: ais-scan` nur die Abweichungen enthält (Record- und Feldnamen
 Bytes“). Instanzen sind unveränderlich und threadsicher.
 
 ## XML-Status (xml-status4j)
+
+> **Veraltet seit 0.6.0.** `xml-status4j` legt die Struktur einer bestimmten DTD in Java fest. Neue
+> Anwendungen nutzen `dtd4j` mit der DTD und einem Layout auf ihrer Seite; die Modellklassen
+> übernimmt die Anwendung.
 
 `XmlStatusFormat.read(lines)` liefert `FahrDaten`, `XmlStatusFormat.write(fahrDaten)` die
 eingerückten Zeilen mit ISO-8859-1-Deklaration. Beim Lesen wird eine `DOCTYPE`-Deklaration ignoriert

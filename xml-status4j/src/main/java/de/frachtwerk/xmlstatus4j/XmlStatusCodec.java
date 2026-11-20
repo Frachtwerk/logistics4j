@@ -54,7 +54,11 @@ import tools.jackson.dataformat.xml.XmlWriteFeature;
  *
  * <p>{@link XmlStatusFormat} offers the same with the {@linkplain XmlStatusConfig#defaults()
  * defaults}.
+ *
+ * @deprecated since 0.6.0, use the module {@code dtd4j} with the DTD and a layout of the
+ *     application; this class will be removed in a later release
  */
+@Deprecated(since = "0.6.0")
 public final class XmlStatusCodec {
 
   private static final Pattern DOCTYPE_START = Pattern.compile("(?i)<!DOCTYPE");
