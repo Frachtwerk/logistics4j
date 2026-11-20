@@ -4,6 +4,8 @@
 
 ### 🌟 Features
 
+- `dtd4j`: new module for XML files described by one or more DTDs: lossless reading, validation against the content models reported as problems, binding to own classes with repeated groups as objects, writing in the order of the DTD; the DTD and a YAML layout (`properties`, `groups`, `nulls`, `nullObjects`, `order`, `lineBreaks`, `doctype`, `validation`) come from the application
+
 ### 🐞 Bug Fixes
 
 ### 🔨 Dependency Upgrades
