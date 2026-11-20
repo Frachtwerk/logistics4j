@@ -212,7 +212,13 @@ class XmlCodecTest {
             "<!DOCTYPE TOURS [<!ENTITY secret SYSTEM \"file:///etc/passwd\">]>",
             "<TOURS><TOUR><LEG_HEAD><LEG_NO>&secret;</LEG_NO></LEG_HEAD></TOUR></TOURS>");
 
+    List<String> malformed =
+        List.of(
+            "<!DOCTYPE OLD STYLE SCAN SYSTEM \"scan.dtd\">",
+            "<TOURS><TOUR><LEG_HEAD><LEG_NO>1</LEG_NO></LEG_HEAD></TOUR></TOURS>");
+
     assertThat(CODEC.read(withSubset).root().name()).isEqualTo("TOURS");
+    assertThat(CODEC.read(malformed).root().name()).isEqualTo("TOURS");
     assertThatThrownBy(() -> codec(b -> b.doctype(Doctype.REJECT)).read(withSubset))
         .isInstanceOf(Dtd4jException.class)
         .hasMessage("DOCTYPE declarations are not allowed");
