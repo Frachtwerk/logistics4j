@@ -49,6 +49,16 @@ class XmlStatusCodecTest {
           "<FAR_DATA><FAHRT><SDG><SDG_HEAD><STA><STA_TEXT>zwei",
           "  Zeilen </STA_TEXT></STA></SDG_HEAD></SDG></FAHRT></FAR_DATA>");
 
+  private static final List<String> INTERNAL_SUBSET =
+      List.of(
+          "<?xml version=\"1.0\"?>",
+          "<!DOCTYPE FAR_DATA [",
+          "  <!ELEMENT FAR_DATA ANY>",
+          "  <!ENTITY name \"value\">",
+          "]>",
+          "<FAR_DATA><FAHRT><SDG><SDG_HEAD><STA><STA_TEXT>text",
+          "</STA_TEXT></STA></SDG_HEAD></SDG></FAHRT></FAR_DATA>");
+
   @Test
   void writesByteForByteWhatTheFirstReleaseWrote() throws Exception {
     // status.written.xml is the output of 0.1.0 for status.valid.xml, with nulls as empty elements
@@ -134,6 +144,16 @@ class XmlStatusCodecTest {
         .isInstanceOf(XmlStatusException.class)
         .hasMessage("DOCTYPE declarations are not allowed");
     assertThat(codec.read(WRAPPED_TEXT.subList(2, 4)).getFahrten()).hasSize(1);
+    assertThatThrownBy(() -> codec.read(INTERNAL_SUBSET))
+        .isInstanceOf(XmlStatusException.class)
+        .hasMessage("DOCTYPE declarations are not allowed");
+  }
+
+  @Test
+  void ignoresADoctypeWithAnInternalSubsetOverSeveralLines() {
+    FahrDaten fahrDaten = XmlStatusCodec.create().read(INTERNAL_SUBSET);
+
+    assertThat(fahrDaten.getFahrten()).hasSize(1);
   }
 
   @Test
