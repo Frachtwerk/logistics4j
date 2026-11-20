@@ -82,6 +82,21 @@ class XmlLayoutTest {
   }
 
   @Test
+  void toBuilderKeepsEverythingAndFollowsANewEncoding() {
+    XmlLayout layout = Tours.layout();
+
+    XmlLayout utf8 = layout.toBuilder().encoding(StandardCharsets.UTF_8).build();
+
+    assertThat(utf8.declaration()).contains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    assertThat(utf8.properties()).isEqualTo(layout.properties());
+    assertThat(utf8.groups()).isEqualTo(layout.groups());
+    assertThat(utf8.nullObjects()).isEqualTo(layout.nullObjects());
+    XmlLayout explicit = layout.toBuilder().declaration("<?xml version=\"1.0\"?>").build();
+    assertThat(explicit.toBuilder().encoding(StandardCharsets.UTF_8).build().declaration())
+        .contains("<?xml version=\"1.0\"?>");
+  }
+
+  @Test
   void reportsEveryError() {
     String yaml =
         """
