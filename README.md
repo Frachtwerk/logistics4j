@@ -9,6 +9,7 @@ steht. Die Engine selbst kennt keine Satzart, kein Release und keine Kooperation
 fortras4j               generische Engine (einzige Abhängigkeit: Jackson 3)
 ais-scan4j              AIS-Scans (eine Zeile je Scan), gelesen mit fortras4j
 xml-status4j            XML-Status (FAR_DATA): Objektmodell, Lesen und Schreiben
+dtd4j                   XML-Dateien nach einer DTD: Lesen, Prüfen, Schreiben, Binding auf eigene Klassen
 ```
 
 `groupId` aller Module ist `de.frachtwerk`, die Version wird über den Parent `logistics4j`
@@ -294,6 +295,53 @@ Java-Namen (`UTF-8`, `IBM850`, `windows-1252`); nur ISO-8859-1 behält die Schre
 der Version 0.1.0. `write` liefert Zeilen, die der Aufrufer kodiert; `read(InputStream)` und
 `write(fahrDaten, OutputStream)` nutzen den konfigurierten Zeichensatz (Zeilenende CR LF).
 Beim Lesen wird ein leeres Element zu leerem Text bzw. einem leeren Objekt, nicht zu `null`.
+
+## XML nach einer DTD (dtd4j)
+
+`dtd4j` kennt keine konkrete Struktur. Die Anwendung bringt eine oder mehrere DTDs und ein Layout mit
+(Klassenpfad oder Verzeichnis), wie bei den Layouts von fortras4j:
+
+```yaml
+dtd: status.dtd            # eine DTD oder eine Liste, relativ zum Layout
+root: FAR_DATA             # Wurzelelement
+encoding: ISO-8859-1       # Zeichensatz der Datei, Standard UTF-8
+declaration: auto          # auto (aus dem Zeichensatz), none oder die Deklaration selbst
+indent: true               # eingerückt (Standard) oder kompakt in einer Zeile
+nulls: empty               # null-Werte: leeres Element (Standard), nil (xsi:nil) oder omit
+nullObjects: omit          # null-Container (Elemente mit Element-Inhalt): wie nulls (Standard) oder omit
+order: dtd                 # Reihenfolge beim Schreiben von Objekten: dtd (Standard) oder alphabetical
+lineBreaks: strip          # Zeilenumbrüche in Textwerten: strip (Standard), keep oder space
+doctype: ignore            # DOCTYPE beim Lesen: ignore (Standard) oder reject; nie ausgewertet
+validation: warning        # Abweichungen von der DTD: warning (Standard), error oder off
+properties:                # Property der eigenen Klasse je Element, Standard der Elementname
+  FAHRT: fahrten
+  FAR: fahrtHeadDaten
+groups:                    # Listen-Property für die wiederholte Gruppe im Inhaltsmodell eines Elements
+  FAHRT: abschnitte        # FAHRT (FAR?, SDG+)+: je Vorkommen ein Objekt mit fahrtHeadDaten und sendungsdaten
+```
+
+```java
+XmlCodec codec = XmlCodec.of(XmlLayout.loadClasspath("xml/status.yaml", loader));
+XmlDocument document = codec.read(lines);        // Elemente in Dokumentreihenfolge und Problems
+FahrDaten daten = codec.read(lines, FahrDaten.class);
+List<String> out = codec.write(daten);           // in der Reihenfolge der DTD
+```
+
+- **Lesen** behält das Dokument vollständig (`XmlDocument`, `XmlElement`). Abweichungen von der DTD
+  (Reihenfolge, fehlende oder unbekannte Elemente, Text an falscher Stelle) werden als `Problem` mit
+  `ProblemCode` und Pfad gemeldet, mit der Schwere aus `validation`; die Daten bleiben erhalten.
+  `read(lines, Klasse)` wirft nur bei Fehlern (`validation: error`).
+- **Binding** über Jackson: Elemente mit Element-Inhalt werden zu Objekten, Textelemente zu Text,
+  Elemente, die laut DTD mehrfach vorkommen dürfen, zu Listen. Jedes Vorkommen einer in `groups`
+  benannten Gruppe wird ein eigenes Objekt; eine Gruppe endet, wo das Inhaltsmodell kein weiteres
+  Element mehr zulässt. Ein einzelnes Element darf auch an eine Liste gebunden werden.
+- **Schreiben** aus Objekten folgt dem Inhaltsmodell (`order: dtd`) oder sortiert alphabetisch je
+  Element und Gruppen-Vorkommen; `toDocument(objekt)` liefert dazu die Problems, z. B. Properties ohne
+  Element (`UNMAPPED_PROPERTY`). Ein `XmlDocument` wird in seiner Reihenfolge geschrieben.
+- **Sicherheit:** Ein `DOCTYPE` der Datei wird nie verarbeitet, externe Entities werden nie aufgelöst;
+  geprüft wird nur gegen die DTDs des Layouts.
+- Nicht unterstützt: Attribute (außer `xsi:nil`), Entities, Notationen und bedingte Abschnitte in der
+  DTD.
 
 ## Build
 

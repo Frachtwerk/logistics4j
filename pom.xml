@@ -43,6 +43,7 @@
         <module>fortras4j</module>
         <module>ais-scan4j</module>
         <module>xml-status4j</module>
+        <module>dtd4j</module>
     </modules>
 
     <properties>
