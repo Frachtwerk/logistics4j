@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import tools.jackson.core.JacksonException;
@@ -201,6 +202,7 @@ final class SchemaLoader {
     private final Map<String, CodeList> codeLists = new LinkedHashMap<>();
     private final Map<String, RecordDefinition> records = new LinkedHashMap<>();
     private Map<String, Map<String, Object>> typeDefaults = Map.of();
+    private final Map<String, Set<String>> usedDefaults = new LinkedHashMap<>();
     private int maxLineLength;
 
     SchemaBuilder(String id, ObjectNode root, FieldTypes types, List<String> errors) {
@@ -223,11 +225,13 @@ final class SchemaLoader {
         error("detect", "a 'detect' pattern for the first line is required");
       }
       Pattern passthrough = pattern(root.get("passthrough"), "passthrough");
-      boolean trimTrailingSpaces = boolValue(root.get("trimTrailingSpaces"), false);
+      boolean trimTrailingSpaces =
+          boolValue(root.get("trimTrailingSpaces"), "trimTrailingSpaces", false);
 
       typeDefaults = parseDefaults(root.get("defaults"));
       parseCodeLists(root.get("codelists"));
       parseRecords(root.get("records"));
+      checkDefaults();
       Map<String, ValueRule> rules = parseRules(root.get(RULES));
       GroupNode structure = parseRoot(root.get("structure"));
 
@@ -269,6 +273,26 @@ final class SchemaLoader {
       return result;
     }
 
+    /**
+     * Reports options under {@code defaults} that no field of their type reads. Types without
+     * fields in this layout are not checked.
+     */
+    private void checkDefaults() {
+      typeDefaults.forEach((typeName, options) -> {
+        Set<String> used = usedDefaults.get(typeName);
+        if (used == null) {
+          return;
+        }
+        Set<String> unknown = new TreeSet<>(options.keySet());
+        unknown.removeAll(used);
+        if (!unknown.isEmpty()) {
+          error(
+              "defaults." + typeName,
+              "unknown option(s) " + unknown + " for type '" + typeName + "'");
+        }
+      });
+    }
+
     private void parseCodeLists(JsonNode node) {
       if (node == null) {
         return;
@@ -280,7 +304,7 @@ final class SchemaLoader {
         JsonNode codes = list;
         if (list.isObject()) {
           unknownKeys(list, Set.of("strict", "codes"), path);
-          strict = boolValue(list.get("strict"), true);
+          strict = boolValue(list.get("strict"), path + ".strict", true);
           codes = list.get("codes");
         }
         codeLists.put(
@@ -419,7 +443,11 @@ final class SchemaLoader {
         return null;
       }
       Set<String> unused = options.unused();
-      unused.removeAll(typeDefaults.getOrDefault(typeName, Map.of()).keySet());
+      Set<String> defaults = typeDefaults.getOrDefault(typeName, Map.of()).keySet();
+      Set<String> used = usedDefaults.computeIfAbsent(typeName, t -> new HashSet<>());
+      defaults.stream().filter(key -> !unused.contains(key)).forEach(used::add);
+      // unknown defaults are reported once for the type, see checkDefaults
+      unused.removeAll(defaults);
       if (!unused.isEmpty()) {
         error(path, "unknown option(s) " + unused + " for type '" + typeName + "'");
       }
@@ -431,7 +459,7 @@ final class SchemaLoader {
           typeName,
           codec,
           defaultValue(node, codec, end - start + 1, path),
-          boolValue(node.get("required"), false),
+          boolValue(node.get("required"), path + ".required", false),
           text(node.get("description")));
     }
 
@@ -482,7 +510,7 @@ final class SchemaLoader {
           count,
           stride,
           fields,
-          boolValue(node.get("skipEmpty"), true),
+          boolValue(node.get("skipEmpty"), path + ".skipEmpty", true),
           presentIf,
           text(node.get("description")));
     }
@@ -982,11 +1010,21 @@ final class SchemaLoader {
       }
     }
 
-    private static boolean boolValue(JsonNode node, boolean defaultValue) {
-      if (node == null) {
+    private boolean boolValue(JsonNode node, String path, boolean defaultValue) {
+      if (node == null || node.isNull()) {
         return defaultValue;
       }
-      return node.isBoolean() ? node.booleanValue() : Boolean.parseBoolean(node.asString());
+      if (node.isBoolean()) {
+        return node.booleanValue();
+      }
+      return switch (node.asString().trim().toLowerCase(Locale.ROOT)) {
+        case "true", "yes" -> true;
+        case "false", "no" -> false;
+        default -> {
+          error(path, "must be true or false: " + node.asString());
+          yield defaultValue;
+        }
+      };
     }
 
     private static Map<String, Object> options(JsonNode node, Set<String> exclude) {

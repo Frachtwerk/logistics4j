@@ -4,6 +4,11 @@
 
 ### 🌟 Features
 
+### 💥 Breaking Changes
+
+- `fortras4j`: options under `defaults` that no field of their type reads are layout errors; before, a misspelled option was ignored
+- `fortras4j`: the layout booleans `trimTrailingSpaces`, `strict`, `required` and `skipEmpty` accept only `true`, `false`, `yes` and `no`; other values were read as `false`
+
 ### 🐞 Bug Fixes
 
 ### 🔨 Dependency Upgrades

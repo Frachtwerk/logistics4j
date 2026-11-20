@@ -83,6 +83,66 @@ class SchemaTest {
   }
 
   @Test
+  void rejectsUnknownOptionsInDefaults() {
+    String yaml =
+        Demo.layout(
+                """
+                A:
+                  fields:
+                    - { name: a, start: 2, end: 5, type: integer }
+                    - { name: b, start: 6, end: 8, overflow: error }
+                """,
+                "- { record: A }")
+            + """
+            defaults:
+              integer: { overflw: max, overflow: max }
+              string: { trim: right, overflow: truncate }
+              decimal: { scael: 2 }
+            """;
+
+    FortrasSchemas.Builder builder = Demo.withLayout(yaml);
+
+    // decimal has no field in this layout, so its defaults are not checked
+    assertThatThrownBy(builder::build)
+        .isInstanceOf(SchemaException.class)
+        .satisfies(e ->
+            assertThat(((SchemaException) e).errors())
+                .containsExactly(
+                    "t: defaults.integer: unknown option(s) [overflw] for type 'integer'"));
+  }
+
+  @Test
+  void rejectsBooleansThatAreNeitherTrueNorFalse() {
+    String records =
+        """
+        A:
+          fields:
+            - { name: a, start: 2, end: 4, type: code, codelist: c, required: %s }
+        """;
+    String codelists =
+        """
+        trimTrailingSpaces: %s
+        codelists:
+          c: { strict: %s, codes: [X] }
+        """;
+    String invalid =
+        Demo.layout(records.formatted("\"ja\""), "- { record: A }")
+            + codelists.formatted("maybe", "\"nein\"");
+    String valid =
+        Demo.layout(records.formatted("\"yes\""), "- { record: A }")
+            + codelists.formatted("\"no\"", "true");
+
+    assertThatThrownBy(Demo.withLayout(invalid)::build)
+        .isInstanceOf(SchemaException.class)
+        .satisfies(e ->
+            assertThat(((SchemaException) e).errors())
+                .anyMatch(m -> m.endsWith("trimTrailingSpaces: must be true or false: maybe"))
+                .anyMatch(m -> m.endsWith("codelists.c.strict: must be true or false: nein"))
+                .anyMatch(m -> m.endsWith(".required: must be true or false: ja")));
+    assertThat(Demo.withLayout(valid).build().get("t").records()).containsKey("A");
+  }
+
+  @Test
   void requiresQuotedCodesSoLeadingZerosSurvive() {
     String yaml =
         """
