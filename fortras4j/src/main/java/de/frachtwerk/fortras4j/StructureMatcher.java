@@ -20,8 +20,10 @@
 package de.frachtwerk.fortras4j;
 
 import de.frachtwerk.fortras4j.schema.Constraint;
+import de.frachtwerk.fortras4j.schema.FieldDefinition;
 import de.frachtwerk.fortras4j.schema.FortrasSchema;
 import de.frachtwerk.fortras4j.schema.Occurs;
+import de.frachtwerk.fortras4j.schema.RecordDefinition;
 import de.frachtwerk.fortras4j.schema.StructureNode;
 import de.frachtwerk.fortras4j.schema.StructureNode.ChoiceNode;
 import de.frachtwerk.fortras4j.schema.StructureNode.GroupNode;
@@ -302,6 +304,20 @@ final class StructureMatcher {
     }
   }
 
+  /** A value of the layout as the field holds it, e.g. {@code 1L} for "001" in an integer field. */
+  private Object constraintValue(Constraint constraint, String value) {
+    RecordDefinition definition = schema.records().get(constraint.recordId());
+    if (definition != null
+        && definition.element(constraint.field()) instanceof FieldDefinition field) {
+      try {
+        return field.codec().coerce(value);
+      } catch (IllegalArgumentException e) {
+        // the loader rejects such values; keep the text
+      }
+    }
+    return value;
+  }
+
   private void checkUnique(GroupNode node, Constraint constraint, List<Record> concerned) {
     Map<Object, Record> seen = new HashMap<>();
     for (Record rec : concerned) {
@@ -318,10 +334,14 @@ final class StructureMatcher {
 
   private void checkRequired(
       GroupNode node, Constraint constraint, List<Record> concerned, List<Record> members) {
-    Set<String> present = new HashSet<>();
-    concerned.forEach(r -> present.add(Objects.toString(r.values().get(constraint.field()), null)));
-    Set<String> missing = new LinkedHashSet<>(constraint.values());
-    missing.removeAll(present);
+    Set<Object> present = new HashSet<>();
+    concerned.forEach(r -> present.add(r.values().get(constraint.field())));
+    Set<String> missing = new LinkedHashSet<>();
+    for (String value : constraint.values()) {
+      if (!present.contains(constraintValue(constraint, value))) {
+        missing.add(value);
+      }
+    }
     if (!missing.isEmpty()) {
       Record anchor = members.isEmpty() ? null : members.getFirst();
       constraintProblem(
@@ -344,7 +364,10 @@ final class StructureMatcher {
     }
     Record first = concerned.getFirst();
     Object value = first.values().get(constraint.field());
-    if (!constraint.values().contains(Objects.toString(value, null))) {
+    boolean allowed =
+        constraint.values().stream()
+            .anyMatch(v -> Objects.equals(constraintValue(constraint, v), value));
+    if (!allowed) {
       constraintProblem(
           ProblemCode.UNEXPECTED_VALUE,
           first,

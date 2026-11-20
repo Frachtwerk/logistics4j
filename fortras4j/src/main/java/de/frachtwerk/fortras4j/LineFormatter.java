@@ -131,6 +131,19 @@ final class LineFormatter {
                   label,
                   e.getMessage()));
       return;
+    } catch (IllegalArgumentException | ClassCastException e) {
+      // a value of another type, e.g. from a bound object, that the codec cannot convert
+      target
+          .problems()
+          .add(
+              new Problem(
+                  Severity.ERROR,
+                  ProblemCode.INVALID_VALUE,
+                  target.lineNumber(),
+                  definition.id(),
+                  label,
+                  e.getMessage()));
+      return;
     }
     if (target.width().of(text) != field.length()) {
       throw new IllegalStateException(

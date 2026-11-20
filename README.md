@@ -231,8 +231,10 @@ entweder einen Sendungsstatus oder einen Barcode-Status enthalten.
 Für alle Felder gelten außerdem `required`, `default` und `description`. Eigene Typen
 registriert man mit `FortrasSchemas.builder().type(...)`.
 
-- `null`: leerer Wert als `blanks` oder `zeros`; `date` und `time` lesen lauter Nullen immer als
-  leer, `datetime` nur mit `null: zeros`
+- `null`: leerer Wert als `blanks` oder `zeros`; `date` liest lauter Nullen immer als leer, `time`
+  und `datetime` nur mit `null: zeros` (sonst ist `0000` Mitternacht). Zahlen schreiben einen leeren
+  Wert standardmäßig als Nullen (`null: zeros`), lesen lauter Nullen aber als `0`: in FORTRAS ist 0
+  meist ein echter Wert
 - `overflow`: zu langer Wert führt zu `error`, `truncate` (Text) oder `max` (Zahlen: lauter Neunen); Standard
   `truncate` bei `string`, sonst `error`. Ein eigenes `maxLength` gilt auch bei `truncate` als harte Grenze
 - `control`: Steuerzeichen sowie Zeilen- und Absatztrenner in Textwerten beim Schreiben; `replace` (Standard)
