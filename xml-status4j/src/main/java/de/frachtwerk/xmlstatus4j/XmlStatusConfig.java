@@ -66,7 +66,11 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
  * }</pre>
  *
  * <p>All keys are optional; unknown keys and invalid values are errors.
+ *
+ * @deprecated since 0.6.0, use the module {@code dtd4j} with the DTD and a layout of the
+ *     application; this class will be removed in a later release
  */
+@Deprecated(since = "0.6.0")
 public final class XmlStatusConfig {
 
   /** How line breaks inside text values are read. */

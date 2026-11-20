@@ -27,7 +27,11 @@ import java.util.List;
  * <p>Reading ignores a {@code DOCTYPE} declaration and removes line breaks inside text values.
  * Writing produces an indented document with an ISO-8859-1 declaration; the caller encodes the
  * lines accordingly. For other settings, e.g. another charset, use {@link XmlStatusCodec}.
+ *
+ * @deprecated since 0.6.0, use the module {@code dtd4j} with the DTD and a layout of the
+ *     application; this class will be removed in a later release
  */
+@Deprecated(since = "0.6.0")
 public final class XmlStatusFormat {
 
   public static final String DECLARATION = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>";
