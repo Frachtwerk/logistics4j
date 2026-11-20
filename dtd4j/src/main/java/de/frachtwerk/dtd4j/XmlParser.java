@@ -22,6 +22,7 @@ package de.frachtwerk.dtd4j;
 import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
@@ -36,6 +37,10 @@ import javax.xml.stream.XMLStreamReader;
 final class XmlParser {
 
   private static final XMLInputFactory FACTORY = factory();
+  private static final Pattern DOCTYPE_START = Pattern.compile("(?i)<!DOCTYPE");
+  // also over several lines, with an internal subset, and with names XML does not allow
+  private static final Pattern DOCTYPE =
+      Pattern.compile("(?is)<!DOCTYPE[^\\[>]*(?:\\[.*?]\\s*)?>\n?");
 
   private XmlParser() {}
 
@@ -52,6 +57,13 @@ final class XmlParser {
    * @throws Dtd4jException if the text is not well-formed or has a DOCTYPE the layout rejects
    */
   static XmlElement parse(String xml, XmlLayout layout) {
+    if (DOCTYPE_START.matcher(xml).find()) {
+      if (layout.doctype() == XmlLayout.Doctype.REJECT) {
+        throw new Dtd4jException("DOCTYPE declarations are not allowed");
+      }
+      // removed before parsing, so a malformed DOCTYPE does not fail the document
+      xml = DOCTYPE.matcher(xml).replaceAll("");
+    }
     XMLStreamReader reader;
     try {
       synchronized (FACTORY) {
@@ -66,11 +78,6 @@ final class XmlParser {
     try {
       while (reader.hasNext()) {
         switch (reader.next()) {
-          case XMLStreamConstants.DTD -> {
-            if (layout.doctype() == XmlLayout.Doctype.REJECT) {
-              throw new Dtd4jException("DOCTYPE declarations are not allowed");
-            }
-          }
           case XMLStreamConstants.START_ELEMENT -> {
             XmlElement element = new XmlElement(name(reader)).nil(isNil(reader));
             if (open.isEmpty()) {
