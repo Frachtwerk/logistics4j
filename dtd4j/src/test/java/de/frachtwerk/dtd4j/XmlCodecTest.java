@@ -254,13 +254,7 @@ class XmlCodecTest {
   }
 
   private static XmlCodec codec(UnaryOperator<XmlLayout.Builder> change) {
-    XmlLayout.Builder builder =
-        XmlLayout.builder(LAYOUT.dtd(), LAYOUT.root())
-            .encoding(LAYOUT.encoding())
-            .nullObjects(LAYOUT.nullObjects());
-    LAYOUT.properties().forEach(builder::property);
-    LAYOUT.groups().forEach(builder::group);
-    return XmlCodec.of(change.apply(builder).build());
+    return XmlCodec.of(change.apply(LAYOUT.toBuilder()).build());
   }
 
   private static String number(XmlCodec codec, List<String> lines) {

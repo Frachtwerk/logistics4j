@@ -192,6 +192,27 @@ public final class XmlLayout {
     return new Builder(dtd, root);
   }
 
+  /** A builder starting from this layout, e.g. to change the encoding. */
+  public Builder toBuilder() {
+    Builder builder = new Builder(dtd, root);
+    builder.encoding = encoding;
+    if (declaration == null) {
+      builder.noDeclaration();
+    } else if (!declaration.equals(automaticDeclaration(encoding))) {
+      builder.declaration(declaration);
+    }
+    builder.indent = indent;
+    builder.nulls = nulls;
+    builder.nullObjects = nullObjects;
+    builder.order = order;
+    builder.lineBreaks = lineBreaks;
+    builder.doctype = doctype;
+    builder.validation = validation;
+    builder.properties.putAll(properties);
+    builder.groups.putAll(groups);
+    return builder;
+  }
+
   /**
    * @throws XmlLayoutException if the file or a DTD is not valid
    */
