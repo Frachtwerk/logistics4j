@@ -775,6 +775,24 @@ final class SchemaLoader {
                   + constraint.recordId()
                   + "."
                   + constraint.field());
+        } else {
+          FieldCodec codec = ((FieldDefinition) definition.element(constraint.field())).codec();
+          for (String value : constraint.values()) {
+            try {
+              codec.coerce(value);
+            } catch (IllegalArgumentException e) {
+              error(
+                  path,
+                  "constraint value '"
+                      + value
+                      + "' does not fit "
+                      + constraint.recordId()
+                      + "."
+                      + constraint.field()
+                      + ": "
+                      + e.getMessage());
+            }
+          }
         }
       }
       for (StructureNode child : group.children()) {

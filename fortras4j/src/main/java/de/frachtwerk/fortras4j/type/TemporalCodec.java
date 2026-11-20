@@ -102,11 +102,12 @@ final class TemporalCodec implements FieldCodec {
     }
   }
 
+  /** A date of zeros is always empty; a time or date-time only with {@code null: zeros}. */
   private boolean isEmpty(String text) {
-    if (kind == Kind.DATETIME) {
-      return layout.isEmpty(text);
+    if (kind == Kind.DATE) {
+      return text.isEmpty() || text.chars().allMatch(c -> c == '0');
     }
-    return text.isEmpty() || text.chars().allMatch(c -> c == '0');
+    return layout.isEmpty(text);
   }
 
   @Override
