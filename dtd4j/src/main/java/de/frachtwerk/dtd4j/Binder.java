@@ -90,7 +90,11 @@ final class Binder {
       fill(node, match.get(), element, shape, false);
     } else {
       // the content does not match the DTD: keep the data, bound by name
-      byName(node, element.children(), shape, false);
+      if (shape.group() != null) {
+        byOrder(node, element, shape);
+      } else {
+        byName(node, element.children(), shape, false);
+      }
     }
   }
 
@@ -113,6 +117,39 @@ final class Binder {
       case Element child -> put(node, element.children().get(child.index()), shape, inGroup);
       case Items items -> items.parts().forEach(p -> fill(node, p, element, shape, inGroup));
       case Option option -> fill(node, option.part(), element, shape, inGroup);
+    }
+  }
+
+  /**
+   * Splits content that does not match into occurrences of the group like the content model would:
+   * a new occurrence starts with an element that comes earlier in the group, or with the same
+   * element again unless it may repeat. Unknown elements stay in the current occurrence.
+   */
+  private void byOrder(ObjectNode node, XmlElement element, Shape shape) {
+    List<XmlElement> outside = new ArrayList<>();
+    List<List<XmlElement>> occurrences = new ArrayList<>();
+    List<XmlElement> current = null;
+    int last = -1;
+    for (XmlElement child : element.children()) {
+      int index = shape.groupOrder().indexOf(child.name());
+      if (index < 0 && shape.lists().containsKey(child.name())) {
+        outside.add(child);
+        continue;
+      }
+      boolean again = index == last && !shape.isList(child.name(), true);
+      if (current == null || (index >= 0 && (index < last || again))) {
+        current = new ArrayList<>();
+        occurrences.add(current);
+      }
+      if (index >= 0) {
+        last = index;
+      }
+      current.add(child);
+    }
+    byName(node, outside, shape, false);
+    ArrayNode groups = array(node, layout.groups().get(element.name()));
+    for (List<XmlElement> occurrence : occurrences) {
+      byName(groups.addObject(), occurrence, shape, true);
     }
   }
 

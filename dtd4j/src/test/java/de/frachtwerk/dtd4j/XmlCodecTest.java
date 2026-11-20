@@ -152,6 +152,44 @@ class XmlCodecTest {
   }
 
   @Test
+  void keepsTheGroupsOfContentThatDoesNotMatch() {
+    // the first position lacks its mandatory LABEL, the TOUR starts with a SHIPMENT
+    String incomplete =
+        "<TOURS><TOUR>"
+            + "<SHIPMENT><HEAD><ID>1</ID><STATUS/></HEAD><ITEM>"
+            + "<COUNT>1</COUNT><CODES><KIND>N</KIND><VALUE>v1</VALUE></CODES>"
+            + "<COUNT>2</COUNT><LABEL>b</LABEL><CODES><KIND>N</KIND><VALUE>v2</VALUE></CODES>"
+            + "</ITEM></SHIPMENT>"
+            + "<LEG_HEAD><LEG_NO>T2</LEG_NO></LEG_HEAD><LEG_HEAD><LEG_NO>T3</LEG_NO></LEG_HEAD>"
+            + "</TOUR></TOURS>";
+
+    XmlDocument document = CODEC.read(List.of(incomplete));
+    Root root = CODEC.bind(document, Root.class);
+
+    assertThat(document.problems())
+        .extracting(Problem::code)
+        .containsOnly(ProblemCode.INVALID_CONTENT);
+    List<Position> positions =
+        root.tours()
+            .getFirst()
+            .legs()
+            .getFirst()
+            .shipments()
+            .getFirst()
+            .items()
+            .getFirst()
+            .positions();
+    assertThat(positions).extracting(Position::count).containsExactly("1", "2");
+    assertThat(positions.getFirst().label()).isNull();
+    assertThat(positions)
+        .extracting(position -> position.codes().getFirst().entries().getFirst().value())
+        .containsExactly("v1", "v2");
+    assertThat(root.tours().getFirst().legs())
+        .extracting(leg -> leg.head() == null ? null : leg.head().number())
+        .containsExactly(null, "T2", "T3");
+  }
+
+  @Test
   void reportsUnknownElementsAndAnUnexpectedRoot() {
     XmlDocument document = CODEC.read(List.of("<TOUR><LEG_HEAD><X/></LEG_HEAD></TOUR>"));
 
