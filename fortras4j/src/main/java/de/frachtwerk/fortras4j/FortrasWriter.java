@@ -46,7 +46,11 @@ public final class FortrasWriter {
     return new FortrasWriter(true, true, Width.chars());
   }
 
-  /** Check the structure (groups, occurrences, constraints) before writing. */
+  /**
+   * Check the structure (groups, occurrences, constraints) before writing. The check assigns each
+   * record its place in the structure ({@link Record#structure()}), so one document should not be
+   * written from several threads at once.
+   */
   public FortrasWriter validate(boolean validate) {
     return new FortrasWriter(validate, failOnError, width);
   }

@@ -151,10 +151,13 @@ final class TextCodec implements FieldCodec {
     if (text.isBlank()) {
       return null;
     }
+    // the prefix counts towards the length only where the line carries it
+    int prefixLength = 0;
     if (valuePrefix != null && text.startsWith(valuePrefix)) {
       text = text.substring(valuePrefix.length());
+      prefixLength = valuePrefix.length();
     }
-    validate(text, false);
+    validate(text, prefixLength, false);
     return text;
   }
 
@@ -169,7 +172,7 @@ final class TextCodec implements FieldCodec {
       return layout.empty(length);
     }
     String text = withoutControl(value.toString());
-    validate(text, true);
+    validate(text, valuePrefix == null ? 0 : valuePrefix.length(), true);
     if (valuePrefix != null) {
       text = valuePrefix + text;
     }
@@ -207,8 +210,8 @@ final class TextCodec implements FieldCodec {
   }
 
   /** When writing, codes missing from a lenient code list are written without complaint. */
-  private void validate(String text, boolean writing) {
-    int length = text.length() + (valuePrefix == null ? 0 : valuePrefix.length());
+  private void validate(String text, int prefixLength, boolean writing) {
+    int length = text.length() + prefixLength;
     if (length > maxLength) {
       throw new FieldValueException(
           ProblemCode.VALUE_TOO_LONG,
