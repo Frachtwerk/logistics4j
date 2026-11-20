@@ -8,7 +8,6 @@ steht. Die Engine selbst kennt keine Satzart, kein Release und keine Kooperation
 ```
 fortras4j               generische Engine (einzige Abhängigkeit: Jackson 3)
 ais-scan4j              AIS-Scans (eine Zeile je Scan), gelesen mit fortras4j
-xml-status4j            XML-Status (FAR_DATA): Objektmodell, Lesen und Schreiben (veraltet, siehe dtd4j)
 dtd4j                   XML-Dateien nach einer DTD: Lesen, Prüfen, Schreiben, Binding auf eigene Klassen
 ```
 
@@ -317,62 +316,6 @@ das per `extends: ais-scan` nur die Abweichungen enthält (Record- und Feldnamen
 
 `ais.widthsIn(StandardCharsets.UTF_8)` liefert eine Kopie, die in Bytes zählt (siehe „Zeichen oder
 Bytes“). Instanzen sind unveränderlich und threadsicher.
-
-## XML-Status (xml-status4j)
-
-> **Veraltet seit 0.6.0.** `xml-status4j` legt die Struktur einer bestimmten DTD in Java fest. Neue
-> Anwendungen nutzen `dtd4j` mit der DTD und einem Layout auf ihrer Seite; die Modellklassen
-> übernimmt die Anwendung.
-
-`XmlStatusFormat.read(lines)` liefert `FahrDaten`, `XmlStatusFormat.write(fahrDaten)` die
-eingerückten Zeilen mit ISO-8859-1-Deklaration. Beim Lesen wird eine `DOCTYPE`-Deklaration ignoriert
-und Zeilenumbrüche in Textwerten werden entfernt; Fehler kommen als `XmlStatusException`.
-
-Das Modell bildet die Wiederholungen der DTD ab. Gruppen ohne eigenes Element sind eigene Klassen:
-
-```
-FahrDaten (FAR_DATA) → Fahrt (FAHRT) → FahrtAbschnitt (FAR?, SDG+) → Sendungsdaten (SDG)
-Sendungsdaten → PositionsDaten (POSI) → Position (POS_*, BCD*) → BarcodeDaten (BCD) → Barcode (BCD_*)
-```
-
-Eine Gruppe endet beim Lesen, wenn ein Element folgt, das in der DTD davor steht, oder dasselbe
-noch einmal, sofern es keine Liste ist (ein zweites `FAR` beginnt einen neuen Abschnitt, ein
-zweites `SDG` nicht).
-
-Andere Einstellungen gibt `XmlStatusConfig` vor, per Builder oder als YAML-Datei; `XmlStatusCodec`
-liest und schreibt damit. Konfiguration und Codec sind unveränderlich und threadsicher:
-
-```java
-XmlStatusCodec utf8 =
-    XmlStatusCodec.of(XmlStatusConfig.builder().encoding(StandardCharsets.UTF_8).build());
-List<String> lines = utf8.write(fahrDaten); // <?xml version="1.0" encoding="UTF-8"?>
-FahrDaten read = XmlStatusCodec.of(XmlStatusConfig.load(Path.of("status.yaml"))).read(lines);
-```
-
-```yaml
-encoding: UTF-8           # Zeichensatz der Datei, Standard ISO-8859-1
-declaration: auto         # auto (aus dem Zeichensatz), none oder die Deklaration selbst
-indent: true              # eingerückt (Standard) oder kompakt in einer Zeile
-nulls: empty              # null-Werte: leeres Element (Standard), nil (xsi:nil) oder omit (weglassen)
-nullObjects: nulls        # null-Container wie VER oder EMP: wie nulls (Standard) oder omit
-order: alphabetical       # Reihenfolge der Elemente: alphabetical (Standard, wie bis 0.4.0) oder dtd
-lineBreaks: strip         # Zeilenumbrüche in Textwerten: strip (Standard), keep oder space
-doctype: ignore           # DOCTYPE beim Lesen: ignore (Standard) oder reject
-rootElement: FAR_DATA     # Name des Wurzelelements
-elements:                 # Elementnamen je <Klasse>.<Property> des Modells
-  FahrtAbschnitt.sendungsdaten: SDG
-```
-
-Für Dateien, die gegen die DTD gültig sein müssen: `order: dtd` schreibt die Elemente in der
-Reihenfolge der DTD, `nullObjects: omit` lässt leere Container weg, deren Inhaltsmodell Pflicht-Elemente
-verlangt (z. B. `VER`), und null-Werte bleiben trotzdem leere Elemente.
-
-Alle Schlüssel sind optional; unbekannte Schlüssel und ungültige Werte meldet eine
-`XmlStatusConfigException` gesammelt. Die Deklaration nennt den Zeichensatz mit seinem kanonischen
-Java-Namen (`UTF-8`, `IBM850`, `windows-1252`); nur ISO-8859-1 behält die Schreibweise `iso-8859-1`
-der Version 0.1.0. `write` liefert Zeilen, die der Aufrufer kodiert; `read(InputStream)` und
-`write(fahrDaten, OutputStream)` nutzen den konfigurierten Zeichensatz (Zeilenende CR LF).
-Beim Lesen wird ein leeres Element zu leerem Text bzw. einem leeren Objekt, nicht zu `null`.
 
 ## XML nach einer DTD (dtd4j)
 
