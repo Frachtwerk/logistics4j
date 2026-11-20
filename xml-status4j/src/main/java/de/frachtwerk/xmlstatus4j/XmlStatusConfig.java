@@ -56,11 +56,13 @@ import tools.jackson.dataformat.yaml.YAMLMapper;
  * declaration: auto         # auto (from the encoding), none, or the declaration itself
  * indent: true              # indented (default) or compact output
  * nulls: empty              # null values: empty element (default), nil (xsi:nil) or omit
+ * nullObjects: nulls        # null containers such as VER: like nulls (default) or omit
+ * order: alphabetical       # element order: alphabetical (default) or dtd
  * lineBreaks: strip         # line breaks in text values: strip (default), keep or space
  * doctype: ignore           # DOCTYPE on reading: ignore (default) or reject
  * rootElement: FAR_DATA     # name of the root element
  * elements:                 # element names, keyed by class and property of the model
- *   Fahrt.sendungsdaten: SDG
+ *   FahrtAbschnitt.sendungsdaten: SDG
  * }</pre>
  *
  * <p>All keys are optional; unknown keys and invalid values are errors.
@@ -87,6 +89,22 @@ public final class XmlStatusConfig {
     OMIT
   }
 
+  /** How writing renders a null container, e.g. {@code VER} or {@code EMP}. */
+  public enum NullObjects {
+    /** Like a null value, see {@link Nulls}. */
+    NULLS,
+    /** No element, also when {@link Nulls} writes null values. */
+    OMIT
+  }
+
+  /** The order in which writing puts the elements of a container. */
+  public enum Order {
+    /** Sorted by element name, as written up to 0.4.0. */
+    ALPHABETICAL,
+    /** In the order of the model, which follows the DTD of the XML status. */
+    DTD
+  }
+
   /** What reading does with a {@code DOCTYPE} declaration. */
   public enum Doctype {
     IGNORE,
@@ -97,15 +115,18 @@ public final class XmlStatusConfig {
   static final Map<String, Class<?>> MODEL =
       Stream.of(
               Barcode.class,
+              BarcodeDaten.class,
               EmpfaengerDaten.class,
               FahrDaten.class,
               FahrerDaten.class,
               Fahrt.class,
+              FahrtAbschnitt.class,
               FahrtHeadDaten.class,
               FahrzeugDaten.class,
               HofDaten.class,
               Lademittel.class,
               Nachnahme.class,
+              Position.class,
               PositionsDaten.class,
               SendungSummen.class,
               SendungsStatus.class,
@@ -124,6 +145,8 @@ public final class XmlStatusConfig {
   private static final String KEY_DECLARATION = "declaration";
   private static final String KEY_INDENT = "indent";
   private static final String KEY_NULLS = "nulls";
+  private static final String KEY_NULL_OBJECTS = "nullObjects";
+  private static final String KEY_ORDER = "order";
   private static final String KEY_LINE_BREAKS = "lineBreaks";
   private static final String KEY_DOCTYPE = "doctype";
   private static final String KEY_ROOT_ELEMENT = "rootElement";
@@ -134,6 +157,8 @@ public final class XmlStatusConfig {
           KEY_DECLARATION,
           KEY_INDENT,
           KEY_NULLS,
+          KEY_NULL_OBJECTS,
+          KEY_ORDER,
           KEY_LINE_BREAKS,
           KEY_DOCTYPE,
           KEY_ROOT_ELEMENT,
@@ -145,6 +170,8 @@ public final class XmlStatusConfig {
   private final String declaration;
   private final boolean indent;
   private final Nulls nulls;
+  private final NullObjects nullObjects;
+  private final Order order;
   private final LineBreaks lineBreaks;
   private final Doctype doctype;
   private final String rootElement;
@@ -155,13 +182,18 @@ public final class XmlStatusConfig {
     this.declaration = builder.resolveDeclaration();
     this.indent = builder.indent;
     this.nulls = builder.nulls;
+    this.nullObjects = builder.nullObjects;
+    this.order = builder.order;
     this.lineBreaks = builder.lineBreaks;
     this.doctype = builder.doctype;
     this.rootElement = builder.rootElement;
     this.elements = Map.copyOf(builder.elements);
   }
 
-  /** ISO-8859-1, indented, nulls as empty elements, line breaks stripped, DOCTYPE ignored. */
+  /**
+   * ISO-8859-1, indented, nulls as empty elements, alphabetical order, line breaks stripped,
+   * DOCTYPE ignored.
+   */
   public static XmlStatusConfig defaults() {
     return DEFAULTS;
   }
@@ -183,6 +215,8 @@ public final class XmlStatusConfig {
     }
     builder.indent = indent;
     builder.nulls = nulls;
+    builder.nullObjects = nullObjects;
+    builder.order = order;
     builder.lineBreaks = lineBreaks;
     builder.doctype = doctype;
     builder.rootElement = rootElement;
@@ -255,6 +289,14 @@ public final class XmlStatusConfig {
     return nulls;
   }
 
+  public NullObjects nullObjects() {
+    return nullObjects;
+  }
+
+  public Order order() {
+    return order;
+  }
+
   public LineBreaks lineBreaks() {
     return lineBreaks;
   }
@@ -267,7 +309,10 @@ public final class XmlStatusConfig {
     return rootElement;
   }
 
-  /** Renamed elements, keyed by {@code <class>.<property>}, e.g. {@code Fahrt.sendungsdaten}. */
+  /**
+   * Renamed elements, keyed by {@code <class>.<property>}, e.g. {@code
+   * FahrtAbschnitt.sendungsdaten}.
+   */
   public Map<String, String> elements() {
     return elements;
   }
@@ -279,6 +324,8 @@ public final class XmlStatusConfig {
         && Objects.equals(declaration, other.declaration)
         && indent == other.indent
         && nulls == other.nulls
+        && nullObjects == other.nullObjects
+        && order == other.order
         && lineBreaks == other.lineBreaks
         && doctype == other.doctype
         && rootElement.equals(other.rootElement)
@@ -288,7 +335,16 @@ public final class XmlStatusConfig {
   @Override
   public int hashCode() {
     return Objects.hash(
-        encoding, declaration, indent, nulls, lineBreaks, doctype, rootElement, elements);
+        encoding,
+        declaration,
+        indent,
+        nulls,
+        nullObjects,
+        order,
+        lineBreaks,
+        doctype,
+        rootElement,
+        elements);
   }
 
   @Override
@@ -301,6 +357,10 @@ public final class XmlStatusConfig {
         + indent
         + ", nulls="
         + nulls
+        + ", nullObjects="
+        + nullObjects
+        + ", order="
+        + order
         + ", lineBreaks="
         + lineBreaks
         + ", doctype="
@@ -333,6 +393,8 @@ public final class XmlStatusConfig {
     private String declaration;
     private boolean indent = true;
     private Nulls nulls = Nulls.EMPTY;
+    private NullObjects nullObjects = NullObjects.NULLS;
+    private Order order = Order.ALPHABETICAL;
     private LineBreaks lineBreaks = LineBreaks.STRIP;
     private Doctype doctype = Doctype.IGNORE;
     private String rootElement = DEFAULT_ROOT_ELEMENT;
@@ -382,6 +444,17 @@ public final class XmlStatusConfig {
       return this;
     }
 
+    public Builder nullObjects(NullObjects nullObjects) {
+      this.nullObjects = Objects.requireNonNull(nullObjects, KEY_NULL_OBJECTS);
+      return this;
+    }
+
+    /** {@link Order#DTD} writes the elements in the order of the model and the DTD. */
+    public Builder order(Order order) {
+      this.order = Objects.requireNonNull(order, KEY_ORDER);
+      return this;
+    }
+
     public Builder lineBreaks(LineBreaks lineBreaks) {
       this.lineBreaks = Objects.requireNonNull(lineBreaks, KEY_LINE_BREAKS);
       return this;
@@ -398,7 +471,8 @@ public final class XmlStatusConfig {
     }
 
     /**
-     * Renames the element of a property, e.g. {@code element(Fahrt.class, "sendungsdaten", "SDG")}.
+     * Renames the element of a property, e.g. {@code element(FahrtAbschnitt.class, "sendungsdaten",
+     * "SDG")}.
      */
     public Builder element(Class<?> type, String property, String name) {
       return element(type.getSimpleName() + "." + property, name);
@@ -492,6 +566,8 @@ public final class XmlStatusConfig {
       text(root, KEY_DECLARATION).ifPresent(this::declaration);
       bool(root, KEY_INDENT).ifPresent(builder::indent);
       enumValue(root, KEY_NULLS, Nulls.class).ifPresent(builder::nulls);
+      enumValue(root, KEY_NULL_OBJECTS, NullObjects.class).ifPresent(builder::nullObjects);
+      enumValue(root, KEY_ORDER, Order.class).ifPresent(builder::order);
       enumValue(root, KEY_LINE_BREAKS, LineBreaks.class).ifPresent(builder::lineBreaks);
       enumValue(root, KEY_DOCTYPE, Doctype.class).ifPresent(builder::doctype);
       text(root, KEY_ROOT_ELEMENT).ifPresent(builder::rootElement);

@@ -48,6 +48,13 @@ public class SendungsStatus {
   @JacksonXmlProperty(localName = "STA_UNTE_FORM")
   private String quittungsUnterschriftFormat;
 
+  // STA_LAT and STA_LNG follow STA_UNTE_FORM in the DTD
+  @JacksonXmlProperty(localName = "STA_LAT")
+  private String breitenGrad;
+
+  @JacksonXmlProperty(localName = "STA_LNG")
+  private String leangenGrad;
+
   @JacksonXmlProperty(localName = "STA_GRUP")
   private String gruppierungsNummer;
 
@@ -68,12 +75,6 @@ public class SendungsStatus {
 
   @JacksonXmlProperty(localName = "STA_WAZE")
   private String wartezeit;
-
-  @JacksonXmlProperty(localName = "STA_LAT")
-  private String breitenGrad;
-
-  @JacksonXmlProperty(localName = "STA_LNG")
-  private String leangenGrad;
 
   public String getCode() {
     return code;

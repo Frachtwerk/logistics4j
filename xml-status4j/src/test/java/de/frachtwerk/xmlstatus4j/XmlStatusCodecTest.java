@@ -105,8 +105,10 @@ class XmlStatusCodecTest {
   void writesNullsAsConfigured() {
     FahrtHeadDaten head = new FahrtHeadDaten();
     head.setRollkartenNr("123");
+    FahrtAbschnitt abschnitt = new FahrtAbschnitt();
+    abschnitt.setFahrtHeadDaten(head);
     Fahrt fahrt = new Fahrt();
-    fahrt.setFahrtHeadDaten(head);
+    fahrt.setAbschnitte(List.of(abschnitt));
     FahrDaten fahrDaten = new FahrDaten();
     fahrDaten.setFahrten(List.of(fahrt));
 
@@ -162,7 +164,7 @@ class XmlStatusCodecTest {
         XmlStatusCodec.of(
             XmlStatusConfig.builder()
                 .rootElement("STATUS")
-                .element(Fahrt.class, "sendungsdaten", "SHIPMENT")
+                .element(FahrtAbschnitt.class, "sendungsdaten", "SHIPMENT")
                 .element(SendungsStatus.class, "code", "STATUS_CODE")
                 .build());
     FahrDaten fahrDaten = XmlStatusFormat.read(lines("status/status.valid.xml"));
@@ -175,6 +177,8 @@ class XmlStatusCodecTest {
     FahrDaten read = codec.read(written);
     assertThat(
             read.getFahrten()
+                .getFirst()
+                .getAbschnitte()
                 .getFirst()
                 .getSendungsdaten()
                 .getFirst()
@@ -214,7 +218,9 @@ class XmlStatusCodecTest {
   @Test
   void refusesCharactersTheEncodingCannotHold() {
     FahrDaten fahrDaten = XmlStatusFormat.read(List.of("<FAR_DATA><FAHRT/></FAR_DATA>"));
-    fahrDaten.getFahrten().getFirst().setSendungsdaten(List.of(sendungWithStatusText("1 €")));
+    FahrtAbschnitt abschnitt = new FahrtAbschnitt();
+    abschnitt.setSendungsdaten(List.of(sendungWithStatusText("1 €")));
+    fahrDaten.getFahrten().getFirst().setAbschnitte(List.of(abschnitt));
     XmlStatusCodec ibm850 = codec(Charset.forName("IBM850"));
     ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -252,6 +258,8 @@ class XmlStatusCodecTest {
     return codec
         .read(WRAPPED_TEXT)
         .getFahrten()
+        .getFirst()
+        .getAbschnitte()
         .getFirst()
         .getSendungsdaten()
         .getFirst()

@@ -37,7 +37,8 @@ class XmlStatusFormatTest {
   void readsShipmentStatusAndBarcodes() throws Exception {
     FahrDaten fahrDaten = XmlStatusFormat.read(lines("status/status.valid.xml"));
 
-    Sendungsdaten sendung = fahrDaten.getFahrten().getFirst().getSendungsdaten().getFirst();
+    Sendungsdaten sendung =
+        fahrDaten.getFahrten().getFirst().getAbschnitte().getFirst().getSendungsdaten().getFirst();
     SendungsdatenKopf kopf = sendung.getSendungsdatenKopf();
     assertThat(kopf.getSendungsnummerVersandspediteurABKO()).isEqualTo("12345678901234567890");
     assertThat(kopf.getSendungsnummerLBaseDepot()).isEqualTo("GEX111222333");
@@ -46,7 +47,16 @@ class XmlStatusFormatTest {
     assertThat(kopf.getSendungsStatus().getQuittungsTimeStamp())
         .contains(LocalDateTime.of(2024, 10, 14, 13, 11, 33));
 
-    Barcode barcode = sendung.getPositionsDaten().getFirst().getBarcodes().getFirst();
+    Barcode barcode =
+        sendung
+            .getPositionsDaten()
+            .getFirst()
+            .getPositionen()
+            .getFirst()
+            .getBarcodeDaten()
+            .getFirst()
+            .getBarcodes()
+            .getFirst();
     assertThat(barcode.getBarcode()).isEqualTo("1234568901234567890");
     assertThat(barcode.getZustellStatus()).isEqualTo("001");
     // timestamps without seconds are accepted as well
@@ -72,7 +82,14 @@ class XmlStatusFormatTest {
                 "Zeilen </STA_TEXT></STA></SDG_HEAD></SDG></FAHRT></FAR_DATA>"));
 
     SendungsdatenKopf kopf =
-        fahrDaten.getFahrten().getFirst().getSendungsdaten().getFirst().getSendungsdatenKopf();
+        fahrDaten
+            .getFahrten()
+            .getFirst()
+            .getAbschnitte()
+            .getFirst()
+            .getSendungsdaten()
+            .getFirst()
+            .getSendungsdatenKopf();
     assertThat(kopf.getSendungsStatus().getText()).isEqualTo("zweiZeilen");
   }
 
@@ -84,7 +101,13 @@ class XmlStatusFormatTest {
     assertThat(written.getFirst()).isEqualTo(XmlStatusFormat.DECLARATION);
     assertThat(written)
         .contains("  <FAHRT>", "        <SDG_IDABK>12345678901234567890</SDG_IDABK>");
-    FahrtHeadDaten head = XmlStatusFormat.read(written).getFahrten().getFirst().getFahrtHeadDaten();
+    FahrtHeadDaten head =
+        XmlStatusFormat.read(written)
+            .getFahrten()
+            .getFirst()
+            .getAbschnitte()
+            .getFirst()
+            .getFahrtHeadDaten();
     // an empty element is read as an empty object or empty text, not as null
     assertThat(written).contains("    <FAR/>");
     assertThat(head).isNotNull();

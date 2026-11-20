@@ -245,10 +245,20 @@ Bytes“). Instanzen sind unveränderlich und threadsicher.
 
 ## XML-Status (xml-status4j)
 
-`XmlStatusFormat.read(lines)` liefert `FahrDaten` (Fahrten → Sendungen → Status und Barcodes),
-`XmlStatusFormat.write(fahrDaten)` die eingerückten Zeilen mit ISO-8859-1-Deklaration. Beim Lesen
-wird eine `DOCTYPE`-Deklaration ignoriert und Zeilenumbrüche in Textwerten werden entfernt;
-Fehler kommen als `XmlStatusException`.
+`XmlStatusFormat.read(lines)` liefert `FahrDaten`, `XmlStatusFormat.write(fahrDaten)` die
+eingerückten Zeilen mit ISO-8859-1-Deklaration. Beim Lesen wird eine `DOCTYPE`-Deklaration ignoriert
+und Zeilenumbrüche in Textwerten werden entfernt; Fehler kommen als `XmlStatusException`.
+
+Das Modell bildet die Wiederholungen der DTD ab. Gruppen ohne eigenes Element sind eigene Klassen:
+
+```
+FahrDaten (FAR_DATA) → Fahrt (FAHRT) → FahrtAbschnitt (FAR?, SDG+) → Sendungsdaten (SDG)
+Sendungsdaten → PositionsDaten (POSI) → Position (POS_*, BCD*) → BarcodeDaten (BCD) → Barcode (BCD_*)
+```
+
+Eine Gruppe endet beim Lesen, wenn ein Element folgt, das in der DTD davor steht, oder dasselbe
+noch einmal, sofern es keine Liste ist (ein zweites `FAR` beginnt einen neuen Abschnitt, ein
+zweites `SDG` nicht).
 
 Andere Einstellungen gibt `XmlStatusConfig` vor, per Builder oder als YAML-Datei; `XmlStatusCodec`
 liest und schreibt damit. Konfiguration und Codec sind unveränderlich und threadsicher:
@@ -265,12 +275,18 @@ encoding: UTF-8           # Zeichensatz der Datei, Standard ISO-8859-1
 declaration: auto         # auto (aus dem Zeichensatz), none oder die Deklaration selbst
 indent: true              # eingerückt (Standard) oder kompakt in einer Zeile
 nulls: empty              # null-Werte: leeres Element (Standard), nil (xsi:nil) oder omit (weglassen)
+nullObjects: nulls        # null-Container wie VER oder EMP: wie nulls (Standard) oder omit
+order: alphabetical       # Reihenfolge der Elemente: alphabetical (Standard, wie bis 0.4.0) oder dtd
 lineBreaks: strip         # Zeilenumbrüche in Textwerten: strip (Standard), keep oder space
 doctype: ignore           # DOCTYPE beim Lesen: ignore (Standard) oder reject
 rootElement: FAR_DATA     # Name des Wurzelelements
 elements:                 # Elementnamen je <Klasse>.<Property> des Modells
-  Fahrt.sendungsdaten: SDG
+  FahrtAbschnitt.sendungsdaten: SDG
 ```
+
+Für Dateien, die gegen die DTD gültig sein müssen: `order: dtd` schreibt die Elemente in der
+Reihenfolge der DTD, `nullObjects: omit` lässt leere Container weg, deren Inhaltsmodell Pflicht-Elemente
+verlangt (z. B. `VER`), und null-Werte bleiben trotzdem leere Elemente.
 
 Alle Schlüssel sind optional; unbekannte Schlüssel und ungültige Werte meldet eine
 `XmlStatusConfigException` gesammelt. Die Deklaration nennt den Zeichensatz mit seinem kanonischen

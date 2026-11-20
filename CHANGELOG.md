@@ -4,12 +4,19 @@
 
 ### 🌟 Features
 
+- `xml-status4j`: option `order` (`alphabetical`, `dtd`); `dtd` writes the elements in the order of the DTD
+- `xml-status4j`: option `nullObjects` (`nulls`, `omit`); `omit` leaves out null containers such as `VER` while null values follow `nulls`
+
 ### 💥 Breaking Changes
 
 - `fortras4j`: options under `defaults` that no field of their type reads are layout errors; before, a misspelled option was ignored
 - `fortras4j`: the layout booleans `trimTrailingSpaces`, `strict`, `required` and `skipEmpty` accept only `true`, `false`, `yes` and `no`; other values were read as `false`
+- `xml-status4j`: the model follows the repetitions of the DTD: `Fahrt` holds `FahrtAbschnitt`s (`FAR?, SDG+`), `PositionsDaten` holds `Position`s and `Position` holds `BarcodeDaten` (`BCD`) with `Barcode`s; element keys move accordingly, e.g. `FahrtAbschnitt.sendungsdaten`
+- `xml-status4j`: `STA_LAT` and `STA_LNG` follow `STA_UNTE_FORM` (only visible with `order: dtd`)
 
 ### 🐞 Bug Fixes
+
+- `xml-status4j`: repeated `FAR`/`SDG` groups in a `FAHRT` and repeated groups in `POSI` and `BCD` are read completely instead of keeping only the last one
 
 ### 🔨 Dependency Upgrades
 
