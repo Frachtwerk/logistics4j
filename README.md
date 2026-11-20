@@ -76,10 +76,10 @@ schemas.reload();
 
 ```yaml
 id: bord100                     # eindeutig; zum expliziten Lesen/Schreiben
-extends: fortras-bord100        # optional: erbt alles, überschreibt Einträge in records/codelists/defaults/rules
+# extends: fortras-bord100      # optional: erbt alles, überschreibt Einträge in records/codelists/defaults/rules
 format: BORD
 release: "100"
-detect: "^@@PHBORD100"          # Regex auf die erste Zeile; muss eindeutig sein
+detect: "^A00"                  # Regex auf die erste Zeile; muss eindeutig sein
 minLineLength: 0                # optional: kürzere Zeilen melden LINE_TOO_SHORT (0 = keine Untergrenze)
 maxLineLength: 512
 trimTrailingSpaces: false       # neu geschriebene Zeilen rechts kürzen
@@ -94,20 +94,31 @@ codelists:
     codes: { SHP: Versender, CON: Empfänger }   # oder als Liste: [SHP, CON]
 
 records:
+  A00:
+    fields:
+      - { name: borderoNummer, start: 4, end: 38 }
+      - { name: borderoDatum, start: 39, length: 8, type: date }
   B00:
     prefix: B00                  # Standard: die Record-Id; "" für Formate ohne Präfix
     length: 336                  # optional: Länge neu geschriebener Zeilen
     fields:
       - { name: laufendeBorderoPosition, start: 4, end: 6, type: integer }
       - { name: qualifier, start: 7, length: 3, type: code, codelist: adressart }
+      - { name: art, start: 10, length: 1 }
       - repeat: hinweise         # Block, der sich in einer Zeile wiederholt
-        start: 7
+        start: 11
         count: 6
         stride: 38
         presentIf: textschluessel   # Block zählt nur, wenn dieses Feld gefüllt ist
         fields:                  # Positionen relativ zum Block
           - { name: textschluessel, start: 1, end: 3 }
           - { name: zusatztext, start: 4, end: 38 }
+  Q10:
+    fields:
+      - { name: statuscode, start: 4, length: 3 }
+  Q20:
+    fields:
+      - { name: barcode, start: 4, length: 35 }
 
 rules:                           # erlaubte Werte eines Feldes, abhängig von anderen Feldern
   qualifierJeArt:                # Name; ein extends ersetzt die Regel oder entfernt sie mit null
@@ -129,9 +140,9 @@ structure:
       - { required: qualifier, record: B00, values: [SHP, CON] }
       - { unique: qualifier, record: B00 }
     children:
-      - { record: B00, as: adresse }
+      - { record: B00, as: adresse, occurs: "1..*" }
   - choice: meldungen                            # je Vorkommen genau eine Option
-    occurs: "1..*"
+    occurs: "*"
     options:
       - group: sendungsstatus
         children: [ { record: Q10 } ]
