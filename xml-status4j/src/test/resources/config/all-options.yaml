@@ -19,9 +19,11 @@ encoding: windows-1252
 declaration: auto
 indent: false
 nulls: omit
+nullObjects: omit
+order: dtd
 lineBreaks: space
 doctype: reject
 rootElement: STATUS
 elements:
-  Fahrt.sendungsdaten: SHIPMENT
+  FahrtAbschnitt.sendungsdaten: SHIPMENT
   SendungsStatus.code: STATUS_CODE

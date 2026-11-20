@@ -24,7 +24,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Doctype;
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.LineBreaks;
+import de.frachtwerk.xmlstatus4j.XmlStatusConfig.NullObjects;
 import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Nulls;
+import de.frachtwerk.xmlstatus4j.XmlStatusConfig.Order;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -83,7 +85,7 @@ class XmlStatusConfigTest {
         XmlStatusConfig.builder()
             .indent(false)
             .lineBreaks(LineBreaks.KEEP)
-            .element(Fahrt.class, "sendungsdaten", "SHIPMENT")
+            .element(FahrtAbschnitt.class, "sendungsdaten", "SHIPMENT")
             .build();
 
     assertThat(config.toBuilder().build()).isEqualTo(config);
@@ -106,10 +108,12 @@ class XmlStatusConfigTest {
                 .encoding(Charset.forName("windows-1252"))
                 .indent(false)
                 .nulls(Nulls.OMIT)
+                .nullObjects(NullObjects.OMIT)
+                .order(Order.DTD)
                 .lineBreaks(LineBreaks.SPACE)
                 .doctype(Doctype.REJECT)
                 .rootElement("STATUS")
-                .element("Fahrt.sendungsdaten", "SHIPMENT")
+                .element("FahrtAbschnitt.sendungsdaten", "SHIPMENT")
                 .element(SendungsStatus.class, "code", "STATUS_CODE")
                 .build());
     assertThat(config.declaration()).contains("<?xml version=\"1.0\" encoding=\"windows-1252\"?>");
@@ -140,8 +144,8 @@ class XmlStatusConfigTest {
         declaration: "encoding=utf-8"
         colour: blue
         elements:
-          Fahrt.sendungsdaten: "two words"
-          Fahrt.nothing: X
+          FahrtAbschnitt.sendungsdaten: "two words"
+          FahrtAbschnitt.nothing: X
           Unknown.code: X
           nodot: X
         """;
@@ -160,11 +164,11 @@ class XmlStatusConfigTest {
                     .anySatisfy(m -> assertThat(m).contains("doctype: unknown value 'allow'"))
                     .anySatisfy(m -> assertThat(m).contains("rootElement: not an XML name"))
                     .anySatisfy(m -> assertThat(m).contains("declaration: must start with"))
-                    .anySatisfy(
-                        m -> assertThat(m).contains("elements.Fahrt.sendungsdaten: not an XML"))
+                    .anySatisfy(m ->
+                        assertThat(m).contains("elements.FahrtAbschnitt.sendungsdaten: not an XML"))
                     .anySatisfy(m ->
                         assertThat(m)
-                            .contains("elements.Fahrt.nothing: unknown property; known: [")
+                            .contains("elements.FahrtAbschnitt.nothing: unknown property; known: [")
                             .contains("sendungsdaten"))
                     .anySatisfy(m -> assertThat(m).contains("elements.Unknown.code: unknown class"))
                     .anySatisfy(m -> assertThat(m).contains("elements.nodot: key must be")));
@@ -200,7 +204,10 @@ class XmlStatusConfigTest {
   @Test
   void elementsAreImmutable() {
     Map<String, String> elements =
-        XmlStatusConfig.builder().element(Fahrt.class, "sendungsdaten", "S").build().elements();
+        XmlStatusConfig.builder()
+            .element(FahrtAbschnitt.class, "sendungsdaten", "S")
+            .build()
+            .elements();
 
     assertThatThrownBy(() -> elements.put("Fahrt.fahrtHeadDaten", "H"))
         .isInstanceOf(UnsupportedOperationException.class);

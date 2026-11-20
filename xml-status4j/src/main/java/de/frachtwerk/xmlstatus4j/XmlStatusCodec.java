@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.dataformat.xml.XmlMapper;
@@ -71,7 +72,8 @@ public final class XmlStatusCodec {
     ElementNameIntrospector names =
         new ElementNameIntrospector(config.elements(), config.rootElement());
 
-    XmlMapper.Builder readerBuilder = XmlMapper.builder().annotationIntrospector(names);
+    XmlMapper.Builder readerBuilder =
+        XmlMapper.builder().annotationIntrospector(names).addModule(Groups.module());
     switch (config.lineBreaks()) {
       case STRIP ->
           readerBuilder.addModule(
@@ -85,7 +87,8 @@ public final class XmlStatusCodec {
     }
     this.reader = readerBuilder.build();
 
-    XmlMapper.Builder writerBuilder = XmlMapper.builder().annotationIntrospector(names);
+    XmlMapper.Builder writerBuilder =
+        XmlMapper.builder().annotationIntrospector(names).addModule(Groups.module());
     if (config.indent()) {
       writerBuilder.enable(SerializationFeature.INDENT_OUTPUT);
     }
@@ -95,6 +98,19 @@ public final class XmlStatusCodec {
       case OMIT ->
           writerBuilder.changeDefaultPropertyInclusion(
               inclusion -> JsonInclude.Value.construct(Include.NON_NULL, Include.NON_NULL));
+    }
+    if (config.nullObjects() == XmlStatusConfig.NullObjects.OMIT) {
+      // null values of the model classes, i.e. the containers, are left out
+      JsonInclude.Value nonNull =
+          JsonInclude.Value.construct(Include.NON_NULL, Include.USE_DEFAULTS);
+      XmlStatusConfig.MODEL
+          .values()
+          .forEach(type ->
+              writerBuilder.withConfigOverride(
+                  type, override -> override.setIncludeAsProperty(nonNull)));
+    }
+    if (config.order() == XmlStatusConfig.Order.DTD) {
+      writerBuilder.disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
     }
     this.writer = writerBuilder.build();
   }
