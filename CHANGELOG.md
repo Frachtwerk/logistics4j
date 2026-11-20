@@ -4,6 +4,10 @@
 
 ### 🌟 Features
 
+### 💥 Breaking Changes
+
+- `xml-status4j`: the module is removed; use `dtd4j` with the DTD, a layout and the model classes of the application (deprecated since 0.6.0)
+
 ### 🐞 Bug Fixes
 
 ### 🔨 Dependency Upgrades
