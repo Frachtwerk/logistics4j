@@ -56,7 +56,10 @@ import tools.jackson.dataformat.xml.XmlWriteFeature;
  */
 public final class XmlStatusCodec {
 
-  private static final Pattern DOCTYPE = Pattern.compile("(?i)<!DOCTYPE.*?>\n?");
+  private static final Pattern DOCTYPE_START = Pattern.compile("(?i)<!DOCTYPE");
+  // also over several lines and with an internal subset in brackets
+  private static final Pattern DOCTYPE =
+      Pattern.compile("(?is)<!DOCTYPE[^\\[>]*(?:\\[.*?]\\s*)?>\n?");
   private static final XmlStatusCodec DEFAULT = new XmlStatusCodec(XmlStatusConfig.defaults());
 
   private final XmlStatusConfig config;
@@ -116,7 +119,7 @@ public final class XmlStatusCodec {
    */
   public FahrDaten read(List<String> lines) {
     String xml = String.join("\n", lines);
-    if (DOCTYPE.matcher(xml).find()) {
+    if (DOCTYPE_START.matcher(xml).find()) {
       if (config.doctype() == XmlStatusConfig.Doctype.REJECT) {
         throw new XmlStatusException("DOCTYPE declarations are not allowed");
       }

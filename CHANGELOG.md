@@ -10,6 +10,8 @@
 
 ### 🐞 Bug Fixes
 
+- `xml-status4j`: `doctype: reject` also rejects a `DOCTYPE` with an internal subset over several lines; `ignore` removes it completely
+
 ### 🔨 Dependency Upgrades
 
 ## Version `0.3.0`
