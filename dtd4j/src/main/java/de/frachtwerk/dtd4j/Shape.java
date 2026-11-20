@@ -23,6 +23,7 @@ import de.frachtwerk.dtd4j.ContentModel.Children;
 import de.frachtwerk.dtd4j.Particle.Choice;
 import de.frachtwerk.dtd4j.Particle.Name;
 import de.frachtwerk.dtd4j.Particle.Sequence;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +35,15 @@ import java.util.Map;
  * @param group the repeated group named in the layout, or {@code null}
  * @param lists for each child element outside the group, whether it may occur more than once
  * @param groupLists the same for child elements inside the group
+ * @param groupOrder the child elements inside the group in the order of the content model
  */
-record Shape(Particle group, Map<String, Boolean> lists, Map<String, Boolean> groupLists) {
+record Shape(
+    Particle group,
+    Map<String, Boolean> lists,
+    Map<String, Boolean> groupLists,
+    List<String> groupOrder) {
 
-  static final Shape NONE = new Shape(null, Map.of(), Map.of());
+  static final Shape NONE = new Shape(null, Map.of(), Map.of(), List.of());
 
   /** The shapes of all elements with element content. */
   static Map<String, Shape> of(XmlLayout layout) {
@@ -48,7 +54,13 @@ record Shape(Particle group, Map<String, Boolean> lists, Map<String, Boolean> gr
         Map<String, Boolean> lists = new HashMap<>();
         Map<String, Boolean> groupLists = new HashMap<>();
         collect(children.particle(), false, group, lists, groupLists);
-        shapes.put(declaration.name(), new Shape(group, Map.copyOf(lists), Map.copyOf(groupLists)));
+        List<String> groupOrder = new ArrayList<>();
+        if (group != null) {
+          names(group, groupOrder);
+        }
+        shapes.put(
+            declaration.name(),
+            new Shape(group, Map.copyOf(lists), Map.copyOf(groupLists), List.copyOf(groupOrder)));
       }
     }
     return Map.copyOf(shapes);
@@ -80,6 +92,16 @@ record Shape(Particle group, Map<String, Boolean> lists, Map<String, Boolean> gr
           collect(option, many, group, lists, groupLists);
         }
       }
+    }
+  }
+
+  private static void names(Particle particle, List<String> into) {
+    if (particle instanceof Name name) {
+      if (!into.contains(name.name())) {
+        into.add(name.name());
+      }
+    } else {
+      parts(particle).forEach(part -> names(part, into));
     }
   }
 
