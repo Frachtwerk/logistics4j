@@ -1,5 +1,13 @@
 # Changelog
 
+## Version `0.6.0-SNAPSHOT`
+
+### 🌟 Features
+
+### 🐞 Bug Fixes
+
+### 🔨 Dependency Upgrades
+
 ## Version `0.5.0`
 
 ### 🌟 Features
