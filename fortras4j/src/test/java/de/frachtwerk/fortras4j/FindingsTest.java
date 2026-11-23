@@ -98,6 +98,15 @@ class FindingsTest {
             () -> Demo.withLayout(yaml.replace("values: [\"002\"]", "values: [\"x\"]")).build())
         .isInstanceOf(SchemaException.class)
         .hasMessageContaining("constraint value 'x' does not fit A.n");
+    assertThatThrownBy(() ->
+            Demo.withLayout(yaml.replace("values: [\"002\"]", "values: [\"99999999999999999999\"]"))
+                .build())
+        .isInstanceOf(SchemaException.class)
+        .hasMessageContaining("constraint value '99999999999999999999' does not fit A.n");
+    assertThatThrownBy(
+            () -> Demo.withLayout(yaml.replace("values: [\"002\"]", "values: [\"\"]")).build())
+        .isInstanceOf(SchemaException.class)
+        .hasMessageContaining("constraint values of A.n contain an empty value");
   }
 
   @Test

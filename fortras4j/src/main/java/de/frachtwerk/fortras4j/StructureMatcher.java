@@ -33,10 +33,10 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -62,6 +62,7 @@ final class StructureMatcher {
   private final List<Problem> problems;
   private final Map<StructureNode, Set<String>> firstSets = new IdentityHashMap<>();
   private final Map<StructureNode, Set<String>> descendantSets = new IdentityHashMap<>();
+  private final Map<Constraint, Map<String, Object>> constraintValues = new IdentityHashMap<>();
   private final Deque<KeyScope> keyScopes = new ArrayDeque<>();
 
   /** Record types the enclosing levels can still accept; such records are never "misplaced". */
@@ -304,18 +305,25 @@ final class StructureMatcher {
     }
   }
 
-  /** A value of the layout as the field holds it, e.g. {@code 1L} for "001" in an integer field. */
-  private Object constraintValue(Constraint constraint, String value) {
-    RecordDefinition definition = schema.records().get(constraint.recordId());
-    if (definition != null
-        && definition.element(constraint.field()) instanceof FieldDefinition field) {
-      try {
-        return field.codec().coerce(value);
-      } catch (IllegalArgumentException e) {
-        // the loader rejects such values; keep the text
-      }
-    }
-    return value;
+  /**
+   * The values of the layout as the field holds them, e.g. {@code 1L} for "001" in an integer
+   * field, keyed by their text; converted once per constraint.
+   */
+  private Map<String, Object> constraintValues(Constraint constraint) {
+    return constraintValues.computeIfAbsent(
+        constraint,
+        c -> {
+          RecordDefinition definition = schema.records().get(c.recordId());
+          FieldDefinition field =
+              definition != null && definition.element(c.field()) instanceof FieldDefinition f
+                  ? f
+                  : null;
+          Map<String, Object> values = new LinkedHashMap<>();
+          for (String value : c.values()) {
+            values.put(value, field == null ? value : field.codec().coerce(value));
+          }
+          return values;
+        });
   }
 
   private void checkUnique(GroupNode node, Constraint constraint, List<Record> concerned) {
@@ -337,11 +345,12 @@ final class StructureMatcher {
     Set<Object> present = new HashSet<>();
     concerned.forEach(r -> present.add(r.values().get(constraint.field())));
     Set<String> missing = new LinkedHashSet<>();
-    for (String value : constraint.values()) {
-      if (!present.contains(constraintValue(constraint, value))) {
-        missing.add(value);
-      }
-    }
+    constraintValues(constraint)
+        .forEach((text, value) -> {
+          if (!present.contains(value)) {
+            missing.add(text);
+          }
+        });
     if (!missing.isEmpty()) {
       Record anchor = members.isEmpty() ? null : members.getFirst();
       constraintProblem(
@@ -364,10 +373,7 @@ final class StructureMatcher {
     }
     Record first = concerned.getFirst();
     Object value = first.values().get(constraint.field());
-    boolean allowed =
-        constraint.values().stream()
-            .anyMatch(v -> Objects.equals(constraintValue(constraint, v), value));
-    if (!allowed) {
+    if (!constraintValues(constraint).containsValue(value)) {
       constraintProblem(
           ProblemCode.UNEXPECTED_VALUE,
           first,

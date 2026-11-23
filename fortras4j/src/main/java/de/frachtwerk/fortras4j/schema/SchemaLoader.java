@@ -777,20 +777,24 @@ final class SchemaLoader {
                   + constraint.field());
         } else {
           FieldCodec codec = ((FieldDefinition) definition.element(constraint.field())).codec();
+          String target = constraint.recordId() + "." + constraint.field();
           for (String value : constraint.values()) {
+            Object coerced;
             try {
-              codec.coerce(value);
-            } catch (IllegalArgumentException e) {
+              coerced = codec.coerce(value);
+            } catch (RuntimeException e) {
               error(
                   path,
                   "constraint value '"
                       + value
                       + "' does not fit "
-                      + constraint.recordId()
-                      + "."
-                      + constraint.field()
+                      + target
                       + ": "
                       + e.getMessage());
+              continue;
+            }
+            if (coerced == null) {
+              error(path, "constraint values of " + target + " contain an empty value");
             }
           }
         }
