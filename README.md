@@ -74,64 +74,124 @@ schemas.reload();
 
 ## Layout-Format
 
+Das Beispiel beschreibt ein Bordero BORD512 Release 100 vom Package-Header `@@PH` bis zum
+Package-Trailer `@@PT`, mit den Pflicht-Satzarten A00, B00, D00, G00, J00 und Z00 und deren
+Pflichtfeldern. Dazu kommen H00 und I00 als Beispiele für `repeat` und `rules`; die übrigen
+Kann-Satzarten (A10, B10, C00, D10, E00, E10, F00, H10) werden genauso beschrieben.
+
 ```yaml
 id: bord100                     # eindeutig; zum expliziten Lesen/Schreiben
-# extends: fortras-bord100      # optional: erbt alles, überschreibt Einträge in records/codelists/defaults/rules
+# extends: bord100-basis        # optional: erbt alles, überschreibt Einträge in records/codelists/defaults/rules
 format: BORD
 release: "100"
-detect: "^A00"                  # Regex auf die erste Zeile; muss eindeutig sein
+detect: "^@@PHBORD100"          # Regex auf die erste Zeile; muss eindeutig sein
 minLineLength: 0                # optional: kürzere Zeilen melden LINE_TOO_SHORT (0 = keine Untergrenze)
 maxLineLength: 512
 trimTrailingSpaces: false       # neu geschriebene Zeilen rechts kürzen
-passthrough: "^[A-Z]99"         # Zeilen, die ungeprüft durchgereicht werden
+passthrough: "^[A-Z]99"         # Zeilen, die ungeprüft durchgereicht werden (bilaterale Satzarten *99)
 
 defaults:                        # Optionen je Typ für alle Felder des Layouts
   integer: { overflow: max }
 
 codelists:
+  datenart:
+    codes: [STD, KDF, ABH, CLU, GTW]
   adressart:
     strict: true                 # unbekannter Code: Fehler (true) oder Warnung (false)
     codes: { SHP: Versender, CON: Empfänger }   # oder als Liste: [SHP, CON]
 
 records:
+  PH:
+    prefix: "@@PH"               # Standard: die Record-Id; "" für Formate ohne Präfix
+    fields:
+      - { name: dateiart, start: 5, length: 4, required: true }
+      - { name: release, start: 9, length: 3, required: true }
   A00:
     fields:
-      - { name: borderoNummer, start: 4, end: 38 }
-      - { name: borderoDatum, start: 39, length: 8, type: date }
+      - { name: datenart, start: 4, length: 3, type: code, codelist: datenart, required: true }
+      - { name: releasestand, start: 7, length: 3, required: true }
+      - { name: borderoNummer, start: 10, end: 44, required: true }
+      - { name: borderoDatum, start: 45, length: 8, type: date, required: true }
+      - { name: codeliste, start: 59, length: 3, required: true }
+      - { name: waehrung, start: 62, length: 3, type: currency, required: true }
+      - { name: versenderId, start: 65, length: 35, required: true }
+      - { name: empfaengerId, start: 100, length: 35, required: true }
   B00:
-    prefix: B00                  # Standard: die Record-Id; "" für Formate ohne Präfix
     length: 336                  # optional: Länge neu geschriebener Zeilen
     fields:
-      - { name: laufendeBorderoPosition, start: 4, end: 6, type: integer }
-      - { name: qualifier, start: 7, length: 3, type: code, codelist: adressart }
-      - { name: art, start: 10, length: 1 }
+      - { name: laufendeBorderoPosition, start: 4, end: 6, type: integer, required: true }
+      - { name: qualifier, start: 7, length: 3, type: code, codelist: adressart, required: true }
+      - { name: name1, start: 10, length: 35, required: true }
+      - { name: strasse, start: 45, length: 35, required: true }
+      - { name: land, start: 80, length: 3, required: true }
+      - { name: plz, start: 83, length: 9, required: true }
+      - { name: ort, start: 92, length: 35, required: true }
+  D00:
+    fields:
+      - { name: laufendeBorderoPosition, start: 4, length: 3, type: integer, required: true }
+      - { name: sendungsposition, start: 7, length: 3, type: integer, required: true }
+      - { name: wareninhalt, start: 24, length: 35, required: true }
+  G00:
+    fields:
+      - { name: laufendeBorderoPosition, start: 4, length: 3, type: integer, required: true }
+      - { name: sendungsNummer, start: 7, length: 35, required: true }
+      - { name: tatsaechlichesSendungsBruttoGewicht, start: 42, length: 9, type: decimal, scale: 3, required: true }
+      - { name: frankatur, start: 51, length: 3, required: true }
+      - { name: direktzustellung, start: 54, length: 1, type: boolean, required: true }   # Y/N
+      - { name: warengruppe, start: 182, length: 3, required: true }
+  H00:
+    fields:
+      - { name: laufendeBorderoPosition, start: 4, length: 3, type: integer, required: true }
       - repeat: hinweise         # Block, der sich in einer Zeile wiederholt
-        start: 11
+        start: 7
         count: 6
         stride: 38
         presentIf: textschluessel   # Block zählt nur, wenn dieses Feld gefüllt ist
         fields:                  # Positionen relativ zum Block
           - { name: textschluessel, start: 1, end: 3 }
           - { name: zusatztext, start: 4, end: 38 }
-  Q10:
+  I00:
     fields:
-      - { name: statuscode, start: 4, length: 3 }
-  Q20:
+      - { name: laufendeBorderoPosition, start: 4, length: 3, type: integer, required: true }
+      - { name: leistungsart, start: 7, length: 3, required: true }
+      - { name: steuerKennzeichen, start: 10, length: 1, required: true }   # 0 steuerfrei, 1 steuerpflichtig
+      - { name: betrag, start: 11, length: 9, type: decimal, scale: 2, required: true }
+  J00:
     fields:
-      - { name: barcode, start: 4, length: 35 }
+      - { name: anzahlSendungen, start: 4, length: 3, type: integer, required: true }
+      - { name: anzahlPackstuecke, start: 7, length: 6, type: integer, required: true }
+      - { name: bruttoGewicht, start: 13, length: 9, type: decimal, scale: 3, required: true }
+      - { name: anzahlGitterboxPaletten, start: 22, length: 4, type: integer, required: true }
+      - { name: anzahlFlachPaletten, start: 26, length: 4, type: integer, required: true }
+      - { name: zusaetzlicheFlachPaletten, start: 30, length: 4, type: integer, required: true }
+      - { name: zusaetzlicheGitterboxPaletten, start: 34, length: 4, type: integer, required: true }
+      - { name: summeSteuerpflichtig, start: 38, length: 11, type: decimal, scale: 2, required: true }
+      - { name: summeSteuerfrei, start: 49, length: 11, type: decimal, scale: 2, required: true }
+      - { name: summeNachnahmen, start: 60, length: 11, type: decimal, scale: 2, required: true }
+      - { name: summeZoll, start: 71, length: 11, type: decimal, scale: 2, required: true }
+      - { name: summeEinfuhrumsatzsteuer, start: 82, length: 11, type: decimal, scale: 2, required: true }
+      - { name: summeMehrwertsteuer, start: 93, length: 11, type: decimal, scale: 2, required: true }
+  Z00:
+    fields:
+      - { name: anzahlSaetze, start: 4, length: 6, type: integer, required: true }   # ohne Z00, @@PH und @@PT
+      - { name: erstellungsDatum, start: 10, length: 8, type: date, required: true }
+      - { name: erstellungsZeit, start: 18, length: 6, type: time, pattern: HHmmss, required: true }
+  PT:
+    prefix: "@@PT"               # ein Satz ohne Felder
 
 rules:                           # erlaubte Werte eines Feldes, abhängig von anderen Feldern
-  qualifierJeArt:                # Name; ein extends ersetzt die Regel oder entfernt sie mit null
-    record: B00
-    field: qualifier
+  steuerJeLeistungsart:          # Name; ein extends ersetzt die Regel oder entfernt sie mit null
+    record: I00
+    field: steuerKennzeichen
     severity: warning            # error (Standard) oder warning
     cases:                       # der erste passende Fall entscheidet
-      - when: { art: [A, B] }    # alle Bedingungsfelder müssen passen
-        allowed: [SHP, CON]
-    otherwise: [SHP]             # optional: ohne passenden Fall; fehlt es, ist alles erlaubt
+      - when: { leistungsart: ["100", "101", "102"] }   # alle Bedingungsfelder müssen passen
+        allowed: ["0"]
+    otherwise: ["0", "1"]        # optional: ohne passenden Fall; fehlt es, ist alles erlaubt
 
 structure:
-  - { record: A00, as: kopf }                    # occurs: Standard "1"
+  - { record: PH, as: header }                   # occurs: Standard "1"
+  - { record: A00, as: kopf }
   - group: sendungen
     occurs: "1..*"                               # 1, 0..1, 1..*, *, 0..9
     key: laufendeBorderoPosition                 # anderer Wert beendet die Gruppe
@@ -140,17 +200,20 @@ structure:
       - { required: qualifier, record: B00, values: [SHP, CON] }
       - { unique: qualifier, record: B00 }
     children:
-      - { record: B00, as: adresse, occurs: "1..*" }
-  - choice: meldungen                            # je Vorkommen genau eine Option
-    occurs: "*"
-    options:
-      - group: sendungsstatus
-        children: [ { record: Q10 } ]
-      - { record: Q20 }
+      - { record: B00, as: adressen, occurs: "1..*" }
+      - { record: D00, as: positionen, occurs: "1..999" }
+      - { record: G00, as: summen }
+      - { record: H00, as: hinweise, occurs: "0..4" }
+      - { record: I00, as: leistungen, occurs: "0..9" }
+  - { record: J00, as: summen }
+  - { record: Z00, as: kontrolle }
+  - { record: PT, as: trailer }
 ```
 
 Positionen sind 1-basiert und inklusiv wie in den Satzartbeschreibungen. Statt `end` kann
-`length` angegeben werden.
+`length` angegeben werden. Neben `record` und `group` gibt es `choice` mit `options`: Je
+Vorkommen passt genau eine der Optionen (Sätze oder Gruppen), z. B. Statusmeldungen, die
+entweder einen Sendungsstatus oder einen Barcode-Status enthalten.
 
 ### Feldtypen
 
