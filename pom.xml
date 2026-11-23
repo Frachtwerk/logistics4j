@@ -11,7 +11,7 @@
 
     <name>Logistics4J</name>
     <description>Readers and writers for logistics file formats: FORTRAS and other fixed-width files driven by layout
-        configuration, plus AIS scan and XML status formats
+        configuration, AIS scans and XML files described by a DTD
     </description>
     <url>https://github.com/Frachtwerk/logistics4j</url>
 
