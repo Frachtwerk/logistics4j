@@ -26,27 +26,46 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
-/** Keeps the layout example of the README loadable. */
+/** Keeps the layout example of the README loadable and valid for a sample bordero. */
 class ReadmeTest {
 
   @Test
   void loadsTheLayoutExample() throws Exception {
+    assertThat(readmeSchemas().get("bord100").records())
+        .containsKeys("PH", "A00", "B00", "D00", "G00", "J00", "Z00", "PT");
+  }
+
+  @Test
+  void readsAndWritesASampleBorderoWithoutProblems() throws Exception {
+    List<String> lines =
+        Files.readAllLines(
+            Path.of("src/test/resources/readme/bord100.txt"), StandardCharsets.UTF_8);
+    Fortras4j fortras = Fortras4j.of(readmeSchemas());
+
+    FortrasDocument document = fortras.read(lines);
+
+    assertThat(document.problems()).isEmpty();
+    assertThat(document.schema().id()).isEqualTo("bord100");
+    Group sendung = document.root().groups("sendungen").getFirst();
+    assertThat(sendung.records("B00")).hasSize(2);
+    assertThat(
+            sendung.record("G00").orElseThrow().getDecimal("tatsaechlichesSendungsBruttoGewicht"))
+        .isEqualByComparingTo("12.5");
+    assertThat(fortras.write(document)).isEqualTo(lines);
+  }
+
+  private static FortrasSchemas readmeSchemas() throws Exception {
     String readme = Files.readString(Path.of("../README.md"));
     String section = readme.substring(readme.indexOf("## Layout-Format"));
     Matcher yaml = Pattern.compile("```yaml\\n(.*?)```", Pattern.DOTALL).matcher(section);
     assertThat(yaml.find()).isTrue();
-
-    FortrasSchemas schemas =
-        FortrasSchemas.builder()
-            .add(
-                "README.md",
-                new ByteArrayInputStream(yaml.group(1).getBytes(StandardCharsets.UTF_8)))
-            .build();
-
-    assertThat(schemas.get("bord100").records()).containsKeys("A00", "B00", "Q10", "Q20");
+    return FortrasSchemas.builder()
+        .add("README.md", new ByteArrayInputStream(yaml.group(1).getBytes(StandardCharsets.UTF_8)))
+        .build();
   }
 }

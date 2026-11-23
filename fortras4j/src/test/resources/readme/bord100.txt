@@ -1,0 +1,11 @@
+@@PHBORD100
+A00KDF1004711                               23112026      DEMEURKUNDE0815                          DEPOT042
+B00001SHPMuster Versand GmbH                Hauptstrasse 1                     DE 76133    Karlsruhe
+B00001CONBeispiel Handel AG                 Am Markt 5                         DE 10115    Berlin
+D000010010001FP 0000   Ersatzteile                                                           000012500000012500012000800100009600040010
+G00001S0000001                           000012500001N                                                                                                                               001
+H00001010Bitte vorher anrufen
+I000011000000010000
+J000010000010000125000000000000000000000000000000000001000000000010000000000000000000000000000000000000
+Z0000000823112026120000
+@@PT
