@@ -100,13 +100,14 @@ class DateTimeTest {
                           - { name: time, start: 10, end: 13, type: time }
                           - { name: stamp, start: 14, end: 25, type: datetime }
                           - { name: short, start: 26, end: 31, type: date, pattern: ddMMyy }
+                          - { name: iso, start: 32, end: 39, type: date, pattern: uuuuMMdd }
                       """,
                       "- { record: A, as: a }"))
               .build());
 
   @Test
   void readsValidDatesAndTimes() {
-    String line = "A29022028" + "2359" + "311220262359" + "010126";
+    String line = "A29022028" + "2359" + "311220262359" + "010126" + "20260131";
     FortrasDocument document = DATES.read(List.of(line));
     Record a = document.records("A").getFirst();
 
@@ -115,26 +116,32 @@ class DateTimeTest {
     assertThat(a.getTime("time")).isEqualTo(LocalTime.of(23, 59));
     assertThat(a.getDateTime("stamp")).isEqualTo(LocalDateTime.of(2026, 12, 31, 23, 59));
     assertThat(a.getDate("short")).isEqualTo(LocalDate.of(2026, 1, 1));
+    // with u the year has no era; the era the codec sets by default must not get in the way
+    assertThat(a.getDate("iso")).isEqualTo(LocalDate.of(2026, 1, 31));
     assertThat(DATES.write(document)).containsExactly(line);
   }
 
   @Test
   void reportsDaysAndTimesThatDoNotExist() {
     // before, a day past the end of the month was moved to the last day without a problem
-    assertThat(DATES.read(List.of("A31022026" + "2400" + "290220270000" + "300226")).problems())
+    assertThat(
+            DATES
+                .read(List.of("A31022026" + "2400" + "290220270000" + "300226" + "20260231"))
+                .problems())
         .extracting(Problem::code, Problem::field)
         .containsExactly(
             tuple(ProblemCode.INVALID_VALUE, "date"),
             tuple(ProblemCode.INVALID_VALUE, "time"),
             tuple(ProblemCode.INVALID_VALUE, "stamp"),
-            tuple(ProblemCode.INVALID_VALUE, "short"));
+            tuple(ProblemCode.INVALID_VALUE, "short"),
+            tuple(ProblemCode.INVALID_VALUE, "iso"));
   }
 
   @Test
   void rejectsADateFromPartsThatDoesNotExist() {
     Record a =
         DATES
-            .read(List.of("A01012026" + "0000" + "010120260000" + "010126"))
+            .read(List.of("A01012026" + "0000" + "010120260000" + "010126" + "20260101"))
             .records("A")
             .getFirst();
     List<Integer> parts = List.of(2026, 2, 31);
