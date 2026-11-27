@@ -1,6 +1,6 @@
 # Changelog
 
-## Version `0.7.0-SNAPSHOT`
+## Version `0.7.0`
 
 ### 🌟 Features
 
@@ -18,6 +18,9 @@
 - `fortras4j`: a `decimal` with `point: explicit` reports a value with an exponent, e.g. `1E3`, as `INVALID_VALUE`; before, it was read as 1000
 
 ### 🔨 Dependency Upgrades
+
+- Upgraded com.diffplug.spotless:spotless-maven-plugin from 3.11.0 to 3.12.0
+- Upgraded github/codeql-action from 4.39.3 to 4.39.4
 
 ## Version `0.6.0`
 
