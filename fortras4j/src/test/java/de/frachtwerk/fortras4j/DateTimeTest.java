@@ -20,8 +20,12 @@
 package de.frachtwerk.fortras4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -83,6 +87,62 @@ class DateTimeTest {
         .singleElement()
         .extracting(Problem::field)
         .isEqualTo("stamp");
+  }
+
+  private static final Fortras4j DATES =
+      Fortras4j.of(
+          Demo.withLayout(
+                  Demo.layout(
+                      """
+                      A:
+                        fields:
+                          - { name: date, start: 2, end: 9, type: date }
+                          - { name: time, start: 10, end: 13, type: time }
+                          - { name: stamp, start: 14, end: 25, type: datetime }
+                          - { name: short, start: 26, end: 31, type: date, pattern: ddMMyy }
+                      """,
+                      "- { record: A, as: a }"))
+              .build());
+
+  @Test
+  void readsValidDatesAndTimes() {
+    String line = "A29022028" + "2359" + "311220262359" + "010126";
+    FortrasDocument document = DATES.read(List.of(line));
+    Record a = document.records("A").getFirst();
+
+    assertThat(document.problems()).isEmpty();
+    assertThat(a.getDate("date")).isEqualTo(LocalDate.of(2028, 2, 29));
+    assertThat(a.getTime("time")).isEqualTo(LocalTime.of(23, 59));
+    assertThat(a.getDateTime("stamp")).isEqualTo(LocalDateTime.of(2026, 12, 31, 23, 59));
+    assertThat(a.getDate("short")).isEqualTo(LocalDate.of(2026, 1, 1));
+    assertThat(DATES.write(document)).containsExactly(line);
+  }
+
+  @Test
+  void reportsDaysAndTimesThatDoNotExist() {
+    // before, a day past the end of the month was moved to the last day without a problem
+    assertThat(DATES.read(List.of("A31022026" + "2400" + "290220270000" + "300226")).problems())
+        .extracting(Problem::code, Problem::field)
+        .containsExactly(
+            tuple(ProblemCode.INVALID_VALUE, "date"),
+            tuple(ProblemCode.INVALID_VALUE, "time"),
+            tuple(ProblemCode.INVALID_VALUE, "stamp"),
+            tuple(ProblemCode.INVALID_VALUE, "short"));
+  }
+
+  @Test
+  void rejectsADateFromPartsThatDoesNotExist() {
+    Record a =
+        DATES
+            .read(List.of("A01012026" + "0000" + "010120260000" + "010126"))
+            .records("A")
+            .getFirst();
+    List<Integer> parts = List.of(2026, 2, 31);
+
+    // Jackson writes a LocalDate as [year, month, day]; before, the DateTimeException escaped
+    assertThatThrownBy(() -> a.set("date", parts))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageStartingWith("A.date: ");
   }
 
   @Test
