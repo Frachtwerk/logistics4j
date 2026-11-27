@@ -116,9 +116,24 @@ class DateTimeTest {
     assertThat(a.getTime("time")).isEqualTo(LocalTime.of(23, 59));
     assertThat(a.getDateTime("stamp")).isEqualTo(LocalDateTime.of(2026, 12, 31, 23, 59));
     assertThat(a.getDate("short")).isEqualTo(LocalDate.of(2026, 1, 1));
-    // with u the year has no era; the era the codec sets by default must not get in the way
+    // u is a proleptic year without an era, unlike y
     assertThat(a.getDate("iso")).isEqualTo(LocalDate.of(2026, 1, 31));
     assertThat(DATES.write(document)).containsExactly(line);
+  }
+
+  @Test
+  void readsAndWritesTheYearZeroWithAProlepticYear() {
+    // an era set by default for u contradicted the year 0 and broke the round trip
+    String line = "A01012026" + "0000" + "010120260000" + "010126" + "00000101";
+    FortrasDocument document = DATES.read(List.of(line));
+
+    assertThat(document.problems()).isEmpty();
+    assertThat(document.records("A").getFirst().getDate("iso")).isEqualTo(LocalDate.of(0, 1, 1));
+    assertThat(DATES.write(document)).containsExactly(line);
+
+    document.records("A").getFirst().set("iso", LocalDate.of(0, 1, 2));
+    assertThat(DATES.write(document))
+        .containsExactly("A01012026" + "0000" + "010120260000" + "010126" + "00000102");
   }
 
   @Test

@@ -90,14 +90,29 @@ final class TemporalCodec implements FieldCodec {
 
   /**
    * Builds a formatter that rejects values that do not exist. Strict resolving needs the era for
-   * the year of era ({@code y}), so the era defaults to the current one, as in {@code ofPattern}.
+   * the year of era ({@code y}), so the era defaults to the current one there, as in {@code
+   * ofPattern}. A proleptic year ({@code u}) gets no era: it would contradict years up to 0.
    */
   private static DateTimeFormatter strict(String pattern) {
-    return new DateTimeFormatterBuilder()
-        .appendPattern(pattern)
-        .parseDefaulting(ChronoField.ERA, 1)
-        .toFormatter()
-        .withResolverStyle(ResolverStyle.STRICT);
+    DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder().appendPattern(pattern);
+    if (hasYearOfEra(pattern)) {
+      builder.parseDefaulting(ChronoField.ERA, 1);
+    }
+    return builder.toFormatter().withResolverStyle(ResolverStyle.STRICT);
+  }
+
+  /** True if the pattern has the letter {@code y} outside quoted text such as {@code 'y'}. */
+  static boolean hasYearOfEra(String pattern) {
+    boolean quoted = false;
+    for (int i = 0; i < pattern.length(); i++) {
+      char c = pattern.charAt(i);
+      if (c == '\'') {
+        quoted = !quoted;
+      } else if (c == 'y' && !quoted) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
