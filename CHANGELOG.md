@@ -15,6 +15,7 @@
 - `fortras4j`: the values of `first` and `required` constraints are compared as the field holds them, e.g. `"001"` matches the integer 1; values that do not fit the field or are empty are layout errors
 - `fortras4j`: a value a field type cannot write is reported as `INVALID_VALUE` instead of failing the writer with an exception
 - `fortras4j`: `date`, `time` and `datetime` report a day or time that does not exist, e.g. `31022026` or `2400`, as `INVALID_VALUE`; before, it was moved to another day without a problem
+- `fortras4j`: a `decimal` with `point: explicit` reports a value with an exponent, e.g. `1E3`, as `INVALID_VALUE`; before, it was read as 1000
 
 ### 🔨 Dependency Upgrades
 
