@@ -20,19 +20,23 @@
 package de.frachtwerk.fortras4j.type;
 
 import de.frachtwerk.fortras4j.ProblemCode;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.List;
 
 /**
  * Types {@code date} (default pattern {@code ddMMyyyy}, i.e. TTMMJJJJ), {@code time} (default
  * {@code HHmm}) and {@code datetime} (default {@code ddMMyyyyHHmm}). Empty fields read as {@code
- * null}; all-zero fields too for {@code date} and {@code time}, for {@code datetime} only with
- * {@code null: zeros}.
+ * null}; all-zero fields too for {@code date}, for {@code time} and {@code datetime} only with
+ * {@code null: zeros}. Values are resolved strictly: a day or time that does not exist, such as
+ * 31.02. or 24:00, is an invalid value instead of being moved to another day.
  */
 final class TemporalCodec implements FieldCodec {
 
@@ -72,7 +76,7 @@ final class TemporalCodec implements FieldCodec {
         String pattern = options.string("pattern", kind.defaultPattern);
         DateTimeFormatter dateTimeFormatter;
         try {
-          dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
+          dateTimeFormatter = strict(pattern);
         } catch (IllegalArgumentException e) {
           throw new IllegalArgumentException("invalid pattern '" + pattern + "'");
         }
@@ -82,6 +86,33 @@ final class TemporalCodec implements FieldCodec {
         return new TemporalCodec(kind, dateTimeFormatter, temporalLayout);
       }
     };
+  }
+
+  /**
+   * Builds a formatter that rejects values that do not exist. Strict resolving needs the era for
+   * the year of era ({@code y}), so the era defaults to the current one there, as in {@code
+   * ofPattern}. A proleptic year ({@code u}) gets no era: it would contradict years up to 0.
+   */
+  private static DateTimeFormatter strict(String pattern) {
+    DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder().appendPattern(pattern);
+    if (hasYearOfEra(pattern)) {
+      builder.parseDefaulting(ChronoField.ERA, 1);
+    }
+    return builder.toFormatter().withResolverStyle(ResolverStyle.STRICT);
+  }
+
+  /** True if the pattern has the letter {@code y} outside quoted text such as {@code 'y'}. */
+  static boolean hasYearOfEra(String pattern) {
+    boolean quoted = false;
+    for (int i = 0; i < pattern.length(); i++) {
+      char c = pattern.charAt(i);
+      if (c == '\'') {
+        quoted = !quoted;
+      } else if (c == 'y' && !quoted) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
@@ -96,7 +127,7 @@ final class TemporalCodec implements FieldCodec {
         case TIME -> LocalTime.parse(text, formatter);
         case DATETIME -> LocalDateTime.parse(text, formatter);
       };
-    } catch (DateTimeParseException e) {
+    } catch (DateTimeException e) {
       throw new FieldValueException(
           ProblemCode.INVALID_VALUE, "'" + text + "' is not a valid " + kind.typeName);
     }
@@ -140,7 +171,8 @@ final class TemporalCodec implements FieldCodec {
             throw new IllegalArgumentException(
                 "cannot convert " + value.getClass().getSimpleName() + " to a " + kind.typeName);
       };
-    } catch (DateTimeParseException e) {
+    } catch (DateTimeException e) {
+      // an ISO text or the parts of a value that does not exist, e.g. [2026, 2, 31]
       throw new IllegalArgumentException("'" + value + "' is not an ISO " + kind.typeName);
     }
   }

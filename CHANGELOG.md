@@ -8,12 +8,14 @@
 
 - `fortras4j`: a `time` of zeros is midnight; it is read as empty only with `null: zeros`, like `datetime`
 - `xml-status4j`: the module is removed; use `dtd4j` with the DTD, a layout and the model classes of the application (deprecated since 0.6.0)
+- `fortras4j`: `date`, `time` and `datetime` resolve strictly: a day or time that does not exist, e.g. `31022026` or `2400`, is reported as `INVALID_VALUE`; before, it was moved to another day without a problem
 
 ### 🐞 Bug Fixes
 
 - `fortras4j`: a `valuePrefix` counts towards the length of a read value only where the line carries it; a full field without the prefix reported `VALUE_TOO_LONG`
 - `fortras4j`: the values of `first` and `required` constraints are compared as the field holds them, e.g. `"001"` matches the integer 1; values that do not fit the field or are empty are layout errors
 - `fortras4j`: a value a field type cannot write is reported as `INVALID_VALUE` instead of failing the writer with an exception
+- `fortras4j`: a `decimal` with `point: explicit` reports a value with an exponent, e.g. `1E3`, as `INVALID_VALUE`; before, it was read as 1000
 
 ### 🔨 Dependency Upgrades
 

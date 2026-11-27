@@ -41,6 +41,8 @@ final class NumberCodec implements FieldCodec {
   }
 
   private static final Pattern DIGITS = Pattern.compile("[+-]?\\d+");
+  // digits with an optional point, no exponent: BigDecimal alone would accept "1E3"
+  private static final Pattern POINT_NUMBER = Pattern.compile("[+-]?(\\d+(\\.\\d*)?|\\.\\d+)");
 
   private final boolean decimal;
   private final int scale;
@@ -112,6 +114,9 @@ final class NumberCodec implements FieldCodec {
     }
     try {
       if (point == Point.EXPLICIT) {
+        if (!POINT_NUMBER.matcher(text).matches()) {
+          throw new NumberFormatException(text);
+        }
         return new BigDecimal(text);
       }
       if (!DIGITS.matcher(text).matches()) {

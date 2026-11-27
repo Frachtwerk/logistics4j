@@ -229,7 +229,9 @@ entweder einen Sendungsstatus oder einen Barcode-Status enthalten.
 | `boolean` | `Boolean` | `true`/`false`: Liste der Codes, der erste wird geschrieben |
 
 Für alle Felder gelten außerdem `required`, `default` und `description`. Eigene Typen
-registriert man mit `FortrasSchemas.builder().type(...)`.
+registriert man mit `FortrasSchemas.builder().type(...)`. `date`, `time` und `datetime` lesen streng:
+Einen Tag oder eine Uhrzeit, die es nicht gibt (etwa `31022026` oder `2400`), meldet der Reader als
+`INVALID_VALUE`, statt sie auf einen anderen Tag zu verschieben.
 
 - `null`: leerer Wert als `blanks` oder `zeros`; `date` liest lauter Nullen immer als leer, `time`
   und `datetime` nur mit `null: zeros` (sonst ist `0000` Mitternacht). Zahlen schreiben einen leeren
